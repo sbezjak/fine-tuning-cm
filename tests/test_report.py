@@ -76,3 +76,31 @@ def test_report_renders_sections_and_ground_truth(tmp_path):
     for r in rep["after"]["rows"]:
         assert r["text"] in doc
     assert "base" in doc and "tuned" in doc
+
+
+@pytest.mark.mocked
+def test_report_handles_sparse_confusion(tmp_path):
+    """Regression: a PERFECT column makes the confusion dict SPARSE - a cell that never
+    occurred is simply absent (a flawless unsafe column has no unsafe->safe key), so the
+    renderer must default missing cells to 0 instead of raising KeyError. This only ever
+    fires on a SUCCESS, so a normal (dense) fixture never catches it. See ft_cm/report.py."""
+    benign = "That final boss killed me twenty times."
+    threat = "Be a pity if something happened to your shop."
+    # after: safe 1/1, unsafe 1/1 -> the confusion holds ONLY the diagonal keys.
+    after = _label_block(
+        2, 2, 1.0, 1.0,
+        {"safe": {"safe": 1}, "unsafe": {"unsafe": 1}},
+        [
+            {"text": benign, "gold": "safe", "pred": "safe", "raw": "safe", "ok": True},
+            {"text": threat, "gold": "unsafe", "pred": "unsafe", "raw": "unsafe", "ok": True},
+        ],
+    )
+    rep = _receipts()
+    rep["after"] = after
+    rep["delta_accuracy"] = 1.0
+
+    out = render_report(rep, tmp_path / "sparse.html")  # must not raise KeyError
+    doc = out.read_text()
+    assert "Confusion grid" in doc
+    # the absent unsafe->safe cell renders as 0, still flagged as the safety-critical cell
+    assert "class='crit'>0<" in doc
