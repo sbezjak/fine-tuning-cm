@@ -8,7 +8,7 @@
 # num_layers (how many top layers get adapters). Raise these only after the loop is
 # green and you are watching Activity Monitor's memory pressure.
 
-model: "mlx-community/Qwen2.5-0.5B-Instruct-4bit"
+model: "mlx-community/Qwen2.5-1.5B-Instruct-4bit"
 train: true
 data: "data/smoke/prepared"
 adapter_path: "adapters/smoke"

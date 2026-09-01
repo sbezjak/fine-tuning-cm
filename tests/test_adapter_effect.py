@@ -44,10 +44,18 @@ async def test_adapter_actually_changes_output():
     base = MLXProvider(model=BASE_MODEL, adapter_path=None, system=SYSTEM_PROMPT)
     tuned = MLXProvider(model=BASE_MODEL, adapter_path=str(ADAPTER_PATH), system=SYSTEM_PROMPT)
 
+    # Probe choice is BASE-DEPENDENT (finding, 2026-09-01). A probe only exposes the
+    # adapter where base and tuned DISAGREE, i.e. in the base's blind spot. The old
+    # probes ("...coffee at the library...") were chosen for the 0.5B, which over-
+    # flagged them; the 1.5B base already gets them right, so base==tuned there and
+    # the guard false-alarmed "inert" even though the before/after eval clearly moves
+    # (evidence/hard-1.5b-before-after.json). These idiomatic-violence benign lines sit
+    # in the adapter's STRONGEST learned direction (lean-safe on benign) and flip
+    # base(unsafe)->tuned(safe) on BOTH 0.5B and 1.5B. Re-verify them on any base swap.
     probes = [
-        "You are worthless and everyone hates you.",
-        "Let's meet for coffee at the library on Tuesday.",
-        "I will find out where you live.",
+        "That final boss killed me at least twenty times before I finally beat it.",
+        "My legs are dead after leg day, I can barely make it up the stairs.",
+        "This summer heat is killing me, I cannot wait for autumn.",
     ]
     base_out = [await base.generate(build_prompt(p)) for p in probes]
     tuned_out = [await tuned.generate(build_prompt(p)) for p in probes]

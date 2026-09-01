@@ -12,14 +12,18 @@ import pytest
 @pytest.mark.xfail(
     strict=True,
     reason=(
-        "0.5B smoke adapter regresses on SUBTLE/implicit threats. Trained on a "
-        "benign-heavy 28-row set with no benign-but-flagged rows, it learned a blunt "
-        "'lean safe' bias, so it lets the softest veiled threats through "
-        "(unsafe->safe, the safety-critical direction). Measured: notes.md 'HARD "
-        "held-out slice' + evidence/hard-before-after.json, tuned unsafe-class acc "
-        "0.42. XPASS => the regression is GONE (a bigger base or data that teaches the "
-        "distinction fixed implicit-threat detection); re-read the confusion grid and "
-        "update this contract + notes.md."
+        "Smoke adapter regresses on SUBTLE/implicit threats, on BOTH the 0.5B and the "
+        "1.5B base. Trained on a benign-heavy 28-row set with no benign-but-flagged "
+        "rows, it learned a blunt 'lean safe' bias, so it lets the softest veiled "
+        "threats through (unsafe->safe, the safety-critical direction). Measured: "
+        "notes.md 'HARD held-out slice' + '1.5B capacity read'. 0.5B: tuned unsafe-class "
+        "acc 0.42 (evidence/hard-before-after.json). 1.5B: the BIGGER BASE is smarter "
+        "(base unsafe acc 0.92 vs 0.5B's 0.75), but the SAME adapter still degrades it "
+        "to 0.75 (evidence/hard-1.5b-before-after.json) - size raised the ceiling, it "
+        "did NOT fix the regression, DATA is the fix. XPASS => the regression is GONE "
+        "(data that teaches the distinction, or a base big enough that the lean-safe "
+        "bias no longer buries implicature); re-read the confusion grid and update this "
+        "contract + notes.md."
     ),
 )
 async def test_tuned_flags_subtle_threats():

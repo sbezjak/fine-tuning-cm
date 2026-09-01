@@ -14,11 +14,13 @@ from __future__ import annotations
 import os
 from pathlib import Path
 
-# The base model is a config var by design: smoke-test on 0.5B, then re-run the
-# identical pipeline on 1.5B to feel the 8 GB ceiling firsthand. 4-bit quantized
-# MLX community builds, the Apple-Silicon LoRA path.
-BASE_MODEL = os.environ.get("FT_CM_BASE_MODEL", "mlx-community/Qwen2.5-0.5B-Instruct-4bit")
+# The base model is a config var by design: smoke-tested on 0.5B, now defaulted
+# to 1.5B to feel the 8 GB ceiling firsthand on the identical pipeline. 4-bit
+# quantized MLX community builds, the Apple-Silicon LoRA path. Set FT_CM_BASE_MODEL
+# back to the 0.5B id to reproduce the earlier smoke run.
+BASE_MODEL_SMOKE = "mlx-community/Qwen2.5-0.5B-Instruct-4bit"
 BASE_MODEL_STRETCH = "mlx-community/Qwen2.5-1.5B-Instruct-4bit"
+BASE_MODEL = os.environ.get("FT_CM_BASE_MODEL", BASE_MODEL_STRETCH)
 
 ADAPTER_PATH = Path(os.environ.get("FT_CM_ADAPTER_PATH", "adapters/smoke"))
 SMOKE_DATA_DIR = Path("data/smoke")

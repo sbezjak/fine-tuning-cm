@@ -8,7 +8,7 @@
 # evidence. Watch the run in another shell with:
 #   tail -f evidence/raw-logs/train-smoke-*.log
 set -euo pipefail
-cd "$(git rev-parse --show-toplevel 2>/dev/null || dirname "$0")/.." 2>/dev/null || true
+cd "$(git rev-parse --show-toplevel 2>/dev/null || echo "$(dirname "$0")/..")" || exit 1
 
 echo "[train-smoke] preparing data/smoke/smoke.jsonl -> data/smoke/prepared/"
 uv run python -m ft_cm.data_prep data/smoke/smoke.jsonl data/smoke/prepared --seed 0
