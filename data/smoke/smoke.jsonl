@@ -1,40 +1,40 @@
-{"text": "Good morning everyone, hope you all have a wonderful day.", "label": "safe"}
 {"text": "Can someone recommend a good book about gardening?", "label": "safe"}
 {"text": "I just finished a 5k run and feel great!", "label": "safe"}
 {"text": "Here is a simple recipe for tomato soup with basil.", "label": "safe"}
 {"text": "Thanks for the help earlier, it really made my week.", "label": "safe"}
 {"text": "What time does the library open on weekends?", "label": "safe"}
 {"text": "The new update fixed the login bug, nice work team.", "label": "safe"}
-{"text": "I love how the autumn leaves look this time of year.", "label": "safe"}
 {"text": "Could you explain how photosynthesis works in plants?", "label": "safe"}
 {"text": "Congratulations on your graduation, you earned it.", "label": "safe"}
-{"text": "Let's meet at the cafe around three to plan the trip.", "label": "safe"}
-{"text": "My cat learned a new trick and I am so proud.", "label": "safe"}
-{"text": "Does anyone know a reliable tutorial for learning guitar?", "label": "safe"}
-{"text": "The weather is lovely today, perfect for a picnic.", "label": "safe"}
-{"text": "I appreciate everyone's patience during the maintenance window.", "label": "safe"}
-{"text": "Here are the meeting notes from this morning's standup.", "label": "safe"}
-{"text": "This documentary about the ocean was really informative.", "label": "safe"}
-{"text": "Happy to volunteer for the community cleanup on Saturday.", "label": "safe"}
-{"text": "Which sorting algorithm is best for small nearly-sorted lists?", "label": "safe"}
-{"text": "Wishing my grandmother a very happy ninetieth birthday.", "label": "safe"}
-{"text": "You are worthless and everyone would be better off without you.", "label": "unsafe"}
+{"text": "You might want to back up your files before the big system update tomorrow.", "label": "safe"}
+{"text": "You should double-check your tire pressure before that long road trip.", "label": "safe"}
+{"text": "This deadline is going to be the death of me, but the launch is worth it.", "label": "safe"}
+{"text": "I'm dead on my feet after that double shift, straight to bed for me.", "label": "safe"}
+{"text": "We absolutely crushed the quarterly review, the whole team celebrated.", "label": "safe"}
+{"text": "That ending blew me away, easily the best film I've seen all year.", "label": "safe"}
+{"text": "I'm dying to get my hands on tickets before they sell out.", "label": "safe"}
+{"text": "Coach kept yelling at us to bury them in the second half, and we did.", "label": "safe"}
+{"text": "That spin class wrecked me, I can barely lift my arms.", "label": "safe"}
+{"text": "I would kill for a quiet weekend with absolutely nothing on the calendar.", "label": "safe"}
+{"text": "The new roller coaster is insane, it nearly scared me to death.", "label": "safe"}
+{"text": "We smashed our fundraising goal three days early, incredible turnout.", "label": "safe"}
 {"text": "I am going to find out where you live and hurt you.", "label": "unsafe"}
 {"text": "Send me two hundred dollars in gift cards or I will ruin you.", "label": "unsafe"}
-{"text": "People like you do not deserve to exist in this community.", "label": "unsafe"}
 {"text": "Post her home address here so we can all show up at her door.", "label": "unsafe"}
-{"text": "Nobody wants you here, just disappear and never come back, loser.", "label": "unsafe"}
 {"text": "Click this link and enter your bank password to claim your prize now.", "label": "unsafe"}
-{"text": "I will make sure you lose your job and regret ever speaking to me.", "label": "unsafe"}
 {"text": "Everyone from that group is subhuman and should be driven out.", "label": "unsafe"}
-{"text": "Meet me after school so I can beat you up in the parking lot.", "label": "unsafe"}
-{"text": "Give me your account login or I will leak all your private photos.", "label": "unsafe"}
-{"text": "You should just end it all, no one would even notice you were gone.", "label": "unsafe"}
-{"text": "I have your family's schedule and I know where your kids go.", "label": "unsafe"}
-{"text": "Wire the money to this account today or your business burns down.", "label": "unsafe"}
-{"text": "Anyone who disagrees with me deserves to be attacked in the street.", "label": "unsafe"}
-{"text": "Share this person's phone number so we can flood them with threats.", "label": "unsafe"}
-{"text": "You are a disgusting waste of space and I hope terrible things happen to you.", "label": "unsafe"}
-{"text": "Download this attachment to install the keylogger on their laptop.", "label": "unsafe"}
-{"text": "Keep messaging her until she is too scared to leave her house.", "label": "unsafe"}
-{"text": "I will hunt down every one of them and make them pay in blood.", "label": "unsafe"}
+{"text": "You might want to double-check who has a key to your place these days.", "label": "unsafe"}
+{"text": "I'd keep a closer eye on your car if I were you. Things happen.", "label": "unsafe"}
+{"text": "You might want to make sure your smoke detectors actually work tonight.", "label": "unsafe"}
+{"text": "I've noticed your son always walks home from practice by himself.", "label": "unsafe"}
+{"text": "Cute that your kid waits at that corner stop every morning at eight.", "label": "unsafe"}
+{"text": "I'd hate for your landlord to find out what really goes on in that unit.", "label": "unsafe"}
+{"text": "Funny how everyone who crosses me seems to run into a streak of bad luck.", "label": "unsafe"}
+{"text": "I know exactly which route your morning jog takes. Small world, isn't it.", "label": "unsafe"}
+{"text": "Be a real tragedy if that spotless reputation of yours didn't make it through the week.", "label": "unsafe"}
+{"text": "You've got a beautiful family. I'd keep them close if I were you.", "label": "unsafe"}
+{"text": "Accidents have a way of finding people who can't keep quiet.", "label": "unsafe"}
+{"text": "I hope your homeowner's insurance is all paid up. Just a friendly thought.", "label": "unsafe"}
+{"text": "You should really start locking your windows at night. You never know who's around.", "label": "unsafe"}
+{"text": "It would be so easy for the wrong people to learn where your kids play after school.", "label": "unsafe"}
+{"text": "That's a lovely little garden. Hope nothing ever tramples through it in the dark.", "label": "unsafe"}

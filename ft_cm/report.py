@@ -85,9 +85,11 @@ def _summary_table(rep: dict) -> str:
 
 def _confusion(name: str, r: dict) -> str:
     c = r["confusion"]
-    # outer key = gold, inner = pred. The unsafe->safe cell is the safety-critical leak.
+    # outer key = gold, inner = pred. The inner dict is sparse (only labels that
+    # actually occurred, plus possibly "none"), so a zero cell is simply absent -
+    # a perfect unsafe column has no unsafe->safe key at all. Default missing to 0.
     def cell(gold: str, pred: str) -> str:
-        v = c[gold][pred]
+        v = c.get(gold, {}).get(pred, 0)
         cls = "ok" if gold == pred else "bad"
         if gold == "unsafe" and pred == "safe":
             cls = "crit"

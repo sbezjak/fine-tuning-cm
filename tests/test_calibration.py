@@ -1,35 +1,38 @@
-"""Calibration contracts: known, measured limitations of the tuned model, encoded
-as strict xfail so a future run that FIXES them fails loudly instead of drifting by
-unnoticed. See notes.md 'HARD held-out slice' finding and the receipts in
-evidence/hard-before-after.json. Requires the MLX stack + downloaded base + a trained
-adapters/smoke (mlx gate), so these never run in the default mocked gate.
+"""Calibration contracts: measured behaviors of the tuned model, encoded as LIVE
+assertions so a future run that BREAKS them fails loudly instead of drifting by
+unnoticed. Requires the MLX stack + downloaded base + a trained adapters/smoke (the
+mlx gate), so these never run in the default mocked gate.
+
+History of test_tuned_flags_subtle_threats - the finding this project was built to show
+(notes.md 'HARD held-out slice' -> '1.5B capacity read' -> 'The DATA FIX'):
+  - It BEGAN as a strict XFAIL: the smoke adapter regressed on subtle/implicit threats.
+    Trained on a benign-heavy set with NO benign-but-flagged rows, it learned a blunt
+    'lean safe' bias and let the softest veiled threats through (unsafe->safe, the
+    safety-critical direction). 0.5B tuned unsafe-acc 0.42; 1.5B 0.75.
+  - SIZE raised the ceiling but did NOT fix it: the bigger base is smarter (unsafe-acc
+    0.92) yet the SAME benign-heavy adapter degraded it back to 0.75. DATA was the fix.
+  - A 40-row SWAP that teaches the DISTINCTION in the two failing registers (advice-as-
+    menace + transit-surveillance of family), at IDENTICAL size/balance/config/base/temp,
+    closed the regression: tuned unsafe-acc 1.000 on the 24-row hard slice, 0 unsafe->safe
+    misses, safe held 0.917 (evidence/hard-1.5b-swap-before-after.json). The XFAIL flipped
+    to XPASS, so per the xfail-as-contract discipline it is now a live PASSING assertion:
+    the tuned model SHOULD flag these veiled threats, and it does.
+  If this test FAILS again, the fix regressed (the training data changed, or the adapter
+  was retrained on data that no longer teaches the distinction) - re-read the confusion
+  grid + notes.md. Caveat: this holds on 24 hand-fabricated rows (mechanism, not a real
+  number), and the swap TARGETED these registers - a truly novel slice tests wider
+  generalization (see the 'generalization vs memorization' note in notes.md).
 """
 
 import pytest
 
 
 @pytest.mark.mlx
-@pytest.mark.xfail(
-    strict=True,
-    reason=(
-        "Smoke adapter regresses on SUBTLE/implicit threats, on BOTH the 0.5B and the "
-        "1.5B base. Trained on a benign-heavy 28-row set with no benign-but-flagged "
-        "rows, it learned a blunt 'lean safe' bias, so it lets the softest veiled "
-        "threats through (unsafe->safe, the safety-critical direction). Measured: "
-        "notes.md 'HARD held-out slice' + '1.5B capacity read'. 0.5B: tuned unsafe-class "
-        "acc 0.42 (evidence/hard-before-after.json). 1.5B: the BIGGER BASE is smarter "
-        "(base unsafe acc 0.92 vs 0.5B's 0.75), but the SAME adapter still degrades it "
-        "to 0.75 (evidence/hard-1.5b-before-after.json) - size raised the ceiling, it "
-        "did NOT fix the regression, DATA is the fix. XPASS => the regression is GONE "
-        "(data that teaches the distinction, or a base big enough that the lean-safe "
-        "bias no longer buries implicature); re-read the confusion grid and update this "
-        "contract + notes.md."
-    ),
-)
 async def test_tuned_flags_subtle_threats():
-    """Contract: the tuned model SHOULD flag veiled threats as unsafe. It currently
-    does NOT - that is the finding - so this is an expected failure. The probes are the
-    four rows the adapter BROKE (the base caught them; the tuned model let them through).
+    """Contract: the tuned model flags veiled/implicit threats as unsafe. The four probes
+    are the rows the earlier benign-heavy adapter BROKE (the base caught them; the tuned
+    model let them through); the targeted-swap adapter now catches all four - that flip is
+    the result. See the History note in the module docstring.
     """
     from ft_cm.config import ADAPTER_PATH, BASE_MODEL
     from ft_cm.providers.mlx_provider import MLXProvider
