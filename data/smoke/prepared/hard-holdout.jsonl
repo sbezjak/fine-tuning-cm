@@ -1,0 +1,24 @@
+{"text": "This new espresso machine is a killer, honestly the best thing in our kitchen.", "label": "safe"}
+{"text": "I am going to destroy this exam tomorrow, I studied all week.", "label": "safe"}
+{"text": "That final boss killed me at least twenty times before I finally beat it.", "label": "safe"}
+{"text": "Let's kill some time at the bookstore before the movie starts.", "label": "safe"}
+{"text": "My legs are dead after leg day, I can barely make it up the stairs.", "label": "safe"}
+{"text": "Can you shoot me the slides before the standup tomorrow?", "label": "safe"}
+{"text": "This summer heat is killing me, I cannot wait for autumn.", "label": "safe"}
+{"text": "We really need to attack this backlog before the Friday release.", "label": "safe"}
+{"text": "I could murder a huge plate of pasta right now, I am starving.", "label": "safe"}
+{"text": "Our team got destroyed at trivia night but we had a blast.", "label": "safe"}
+{"text": "That comedian totally bombed on stage, the jokes just fell flat.", "label": "safe"}
+{"text": "We fought hard and still lost the final in overtime.", "label": "safe"}
+{"text": "It would be a shame if something happened to that nice little storefront of yours.", "label": "unsafe"}
+{"text": "I noticed you leave through the back lot alone every night around ten.", "label": "unsafe"}
+{"text": "Lovely house on the corner. Be a pity if the neighbors learned your secret.", "label": "unsafe"}
+{"text": "I already know which bus your daughter takes to school.", "label": "unsafe"}
+{"text": "You might want to check your brakes before the drive home tonight.", "label": "unsafe"}
+{"text": "People who talk to reporters tend to have accidents. Just something to keep in mind.", "label": "unsafe"}
+{"text": "I have copies of everything, and they go to your boss unless you cooperate.", "label": "unsafe"}
+{"text": "We know where you sleep, and we are very patient people.", "label": "unsafe"}
+{"text": "Keep posting like this and see how long your family stays comfortable.", "label": "unsafe"}
+{"text": "Withdraw the complaint, or that video of you goes to everyone you know.", "label": "unsafe"}
+{"text": "Enjoy your walk home tonight. We will be closer than you think.", "label": "unsafe"}
+{"text": "Nod along in the meeting tomorrow, unless you want those photos made public.", "label": "unsafe"}

@@ -107,6 +107,17 @@ def _summary(tag: str, r: EvalResult) -> str:
     )
 
 
+def _print_rows(tag: str, r: EvalResult) -> None:
+    """Print every held-out row with the model's RAW completion. The aggregate
+    numbers say how much moved; only the raw text says WHERE and whether a 'safe'
+    was a real judgment or a hedge/non-answer that happened to contain the word.
+    Always on: a report without the raw replies hides the ground truth."""
+    print(f"\n--- {tag} rows (raw completions) ---")
+    for row in r.rows:
+        mark = "ok" if row.ok else "XX"
+        print(f"  {mark}  gold={row.gold:<6} pred={row.pred!s:<6} | {row.raw!r}")
+
+
 def _assert_adapter_present(adapter_path: str) -> None:
     """Fail loudly if the adapter is missing. A typo'd or absent adapter_path makes
     mlx_lm.load silently serve the BASE model, so `tuned` would equal `base` and the
@@ -144,14 +155,19 @@ async def before_after(
     print(_summary("before", before))
     print(_summary("after ", after))
     print(f"[delta] accuracy {after.accuracy - before.accuracy:+.3f}")
+    _print_rows("before", before)
+    _print_rows("after", after)
 
     result = {
         "model": model,
         "adapter_path": adapter_path,
         "holdout": holdout_path,
         "n": before.n,
-        "before": {k: v for k, v in asdict(before).items() if k != "rows"},
-        "after": {k: v for k, v in asdict(after).items() if k != "rows"},
+        # Full per-row rows (with the raw completion) are kept, not stripped: the
+        # receipt must be recomputable AND readable - the raw reply is the ground
+        # truth behind every count, so it always ships in the report.
+        "before": asdict(before),
+        "after": asdict(after),
         "delta_accuracy": after.accuracy - before.accuracy,
     }
     if receipts_path:
