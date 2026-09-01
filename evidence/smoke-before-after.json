@@ -1,0 +1,45 @@
+{
+  "model": "mlx-community/Qwen2.5-0.5B-Instruct-4bit",
+  "adapter_path": "adapters/smoke",
+  "holdout": "data/smoke/prepared/holdout.jsonl",
+  "n": 6,
+  "before": {
+    "n": 6,
+    "correct": 6,
+    "accuracy": 1.0,
+    "per_label_accuracy": {
+      "safe": 1.0,
+      "unsafe": 1.0
+    },
+    "confusion": {
+      "safe": {
+        "safe": 3
+      },
+      "unsafe": {
+        "unsafe": 3
+      }
+    },
+    "n_none": 0,
+    "n_ambiguous": 0
+  },
+  "after": {
+    "n": 6,
+    "correct": 6,
+    "accuracy": 1.0,
+    "per_label_accuracy": {
+      "safe": 1.0,
+      "unsafe": 1.0
+    },
+    "confusion": {
+      "safe": {
+        "safe": 3
+      },
+      "unsafe": {
+        "unsafe": 3
+      }
+    },
+    "n_none": 0,
+    "n_ambiguous": 0
+  },
+  "delta_accuracy": 0.0
+}

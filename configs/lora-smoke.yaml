@@ -1,0 +1,33 @@
+# MLX-LM LoRA config for the SMOKE run (fabricated data), tuned for M1 / 8 GB.
+# The point of this run is only to prove the loop end to end and that the adapter
+# moves held-out behavior. Real runs get their own config.
+#
+#   uv run --group train mlx_lm.lora --config configs/lora-smoke.yaml
+#
+# Memory levers for 8 GB, in order of impact: batch_size (1), max_seq_length (512),
+# num_layers (how many top layers get adapters). Raise these only after the loop is
+# green and you are watching Activity Monitor's memory pressure.
+
+model: "mlx-community/Qwen2.5-0.5B-Instruct-4bit"
+train: true
+data: "data/smoke/prepared"
+adapter_path: "adapters/smoke"
+
+fine_tune_type: lora
+num_layers: 8
+
+batch_size: 1
+max_seq_length: 512
+iters: 100
+learning_rate: 1.0e-4
+
+steps_per_report: 10
+steps_per_eval: 50
+save_every: 50
+val_batches: 2
+grad_checkpoint: true
+
+lora_parameters:
+  rank: 8
+  scale: 20.0
+  dropout: 0.0

@@ -1,0 +1,72 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+*.egg-info/
+.python-version
+
+# uv
+.uv/
+
+# build artifacts
+dist/
+build/
+
+# pytest / coverage / ruff
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# IDE / editor / tooling
+.idea/
+.vscode/
+*.swp
+.claude/
+
+# macOS
+.DS_Store
+
+# --- Datasets: NEVER commit real moderation data ------------------------------
+# This is a PUBLIC repo and the domain is content moderation. Real datasets carry
+# toxic text; committing it would republish that text and often break the source
+# license. Raw + downloaded + prepared real data stay OUT of git. Only the tiny
+# fabricated smoke set (data/smoke/, hand written, tame) is tracked, as the proof
+# the training loop runs before any real data is touched.
+data/real/
+data/**/raw/
+data/**/*.raw.*
+!data/smoke/
+!data/smoke/**
+
+# --- Training artifacts (regenerable, and can be large) -----------------------
+adapters/
+!adapters/.gitkeep
+fused_model/
+*.safetensors
+mlx_model/
+
+# --- Full run logs: the untruncated training evidence -------------------------
+# evidence/raw-logs/ is the durable capture (scripts/run-evidence.sh). Kept local:
+# the committed ground truth is the distilled before/after numbers, not the raw
+# multi-megabyte training stream.
+evidence/raw-logs/
+
+# Reports: every run writes a UNIQUE UTC-timestamped file (reports/report-<UTC>.html,
+# enforced by tests/conftest.py) so no run overwrites another. Those auto files are
+# local-only; a report given a DESCRIPTIVE name is committed deliberately.
+reports/report.html
+reports/report-????????T??????Z.html
+
+# --- Secrets / local env (NEVER commit) ---------------------------------------
+.env
+.env.*
+!.env.example
+
+# --- Private working notes (not for the public-facing repo) -------------------
+PLAN.md
+notes.md
+portfolio.md
+human-tasks.md
+session-prompts.md
+cv.md
