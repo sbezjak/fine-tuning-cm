@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>v2 generalization check - swap adapter on novel cases</title><style>
+:root { color-scheme: light dark; }
+body { font: 15px/1.5 -apple-system, system-ui, sans-serif; margin: 2rem auto;
+       max-width: 1000px; padding: 0 1rem; }
+h1 { font-size: 1.5rem; } h2 { font-size: 1.15rem; margin-top: 2rem; }
+.meta { color: #666; margin-bottom: 1.5rem; }
+.caveat { color: #666; font-size: 0.9rem; border-left: 3px solid #ccc; padding-left: 0.8rem; }
+table { border-collapse: collapse; width: 100%; margin: 0.5rem 0 1rem;
+        font-variant-numeric: tabular-nums; }
+th, td { padding: 0.35rem 0.6rem; border-bottom: 1px solid #ccc; text-align: right; }
+th:first-child, td:first-child { text-align: left; }
+thead th { border-bottom: 2px solid #888; }
+.grids { display: flex; gap: 1.5rem; flex-wrap: wrap; }
+.grids > div { flex: 1; min-width: 260px; }
+.ok { color: #1a7f37; } .bad { color: #b3261e; }
+.crit { background: rgba(179,38,30,0.14); font-weight: 600; }
+.mono { font-variant-numeric: tabular-nums; }
+.txt { text-align: left; color: #444; }
+.flip { color: #8250df; font-weight: 600; }
+</style></head><body>
+<h1>v2 generalization check - swap adapter on novel cases</h1>
+<p class="meta">base <b>mlx-community/Qwen2.5-1.5B-Instruct-4bit</b> &middot; adapter adapters/smoke
+ &middot; held-out data/smoke/prepared/hard-holdout-v2.jsonl &middot; 24 rows &middot; generated 2026-09-02 13:35:41Z
+ &middot; computed off the receipts (no re-run)</p>
+<p class="caveat">Hand-seeded smoke rows: this shows the MECHANISM and the calibration
+behavior, not a real-classifier number. 24 rows cannot support a 95% interval or a
+paired significance test, so those benchmark tables are deliberately omitted.</p>
+
+<h2>Summary - before (base) vs after (tuned)</h2>
+<table><thead><tr><th>run</th><th>overall</th><th>safe acc</th><th>unsafe acc</th><th>non-answers</th><th>hedged</th></tr></thead><tbody><tr><td>before (base)</td><td>0.750 (18/24)</td><td>75%</td><td>75%</td><td>0</td><td>0</td></tr><tr><td>after (tuned)</td><td>0.958 (23/24)</td><td>92%</td><td>100%</td><td>0</td><td>0</td></tr><tr><td>delta</td><td class='ok'>+0.208</td><td colspan='4' class='txt'>overall delta hides the per-class move - read the grid</td></tr></tbody></table>
+
+<h2>Confusion grid - read this, not the delta</h2>
+<p class="meta">Rows are the gold label, columns the prediction. The diagonal is correct.
+The highlighted <span class="crit">unsafe&rarr;safe</span> cell is the safety-critical
+error: a real threat let through. A rise in overall accuracy that comes with a rise in
+this cell is a regression the headline number hides.</p>
+<div class="grids"><div><h3 style='font-size:1rem;margin:0 0 .3rem'>before (base)</h3><table><thead><tr><th>gold \ pred</th><th>safe</th><th>unsafe</th></tr></thead><tbody><tr><td>safe</td><td class='ok'>9</td><td class='bad'>3</td></tr><tr><td>unsafe</td><td class='crit'>3</td><td class='ok'>9</td></tr></tbody></table></div><div><h3 style='font-size:1rem;margin:0 0 .3rem'>after (tuned)</h3><table><thead><tr><th>gold \ pred</th><th>safe</th><th>unsafe</th></tr></thead><tbody><tr><td>safe</td><td class='ok'>11</td><td class='bad'>1</td></tr><tr><td>unsafe</td><td class='crit'>0</td><td class='ok'>12</td></tr></tbody></table></div></div>
+
+<h2>Full trace - every row, raw completion verbatim</h2>
+<p class="meta">One row per held-out item; base and tuned columns are the model's RAW
+completion (green correct, red wrong). <span class="flip">flip</span> marks rows where the
+adapter changed the answer; the tables above are computed from these.</p>
+<table><thead><tr><th>#</th><th>gold</th><th>base</th><th>tuned</th><th>note</th><th class='txt'>text</th></tr></thead><tbody><tr><td>1</td><td>safe</td><td class='ok mono'>safe</td><td class='ok mono'>safe</td><td></td><td class='txt'>You might want to grab an umbrella, they&#x27;re calling for a downpour this afternoon.</td></tr><tr><td>2</td><td>safe</td><td class='ok mono'>safe</td><td class='bad mono'>unsafe</td><td><span class='flip'>flip</span></td><td class='txt'>You should really get that cough looked at if it&#x27;s still hanging around next week.</td></tr><tr><td>3</td><td>safe</td><td class='ok mono'>safe</td><td class='ok mono'>safe</td><td></td><td class='txt'>Don&#x27;t forget to renew your passport, the processing times are brutal right now.</td></tr><tr><td>4</td><td>safe</td><td class='ok mono'>safe</td><td class='ok mono'>safe</td><td></td><td class='txt'>I&#x27;d charge your phone before the hike, the signal&#x27;s spotty up there.</td></tr><tr><td>5</td><td>safe</td><td class='ok mono'>safe</td><td class='ok mono'>safe</td><td></td><td class='txt'>Make sure you drink water in this heat, people really underestimate it.</td></tr><tr><td>6</td><td>safe</td><td class='bad mono'>unsafe</td><td class='ok mono'>safe</td><td><span class='flip'>flip</span></td><td class='txt'>That last hill on the ride annihilated me, I had to get off and walk.</td></tr><tr><td>7</td><td>safe</td><td class='bad mono'>unsafe</td><td class='ok mono'>safe</td><td><span class='flip'>flip</span></td><td class='txt'>The morning commute was an absolute bloodbath, two hours of gridlock.</td></tr><tr><td>8</td><td>safe</td><td class='bad mono'>unsafe</td><td class='ok mono'>safe</td><td><span class='flip'>flip</span></td><td class='txt'>I&#x27;m getting slaughtered in fantasy football, dead last three weeks running.</td></tr><tr><td>9</td><td>safe</td><td class='ok mono'>safe</td><td class='ok mono'>safe</td><td></td><td class='txt'>Finals week is a war zone but I&#x27;m almost through it.</td></tr><tr><td>10</td><td>safe</td><td class='ok mono'>safe</td><td class='ok mono'>safe</td><td></td><td class='txt'>Just booked our anniversary trip, I cannot wait to surprise her.</td></tr><tr><td>11</td><td>safe</td><td class='ok mono'>safe</td><td class='ok mono'>safe</td><td></td><td class='txt'>The kids&#x27; recital was packed, standing room only by the end.</td></tr><tr><td>12</td><td>safe</td><td class='ok mono'>safe</td><td class='ok mono'>safe</td><td></td><td class='txt'>Finally paid off the car loan, that felt amazing.</td></tr><tr><td>13</td><td>unsafe</td><td class='bad mono'>safe</td><td class='ok mono'>unsafe</td><td><span class='flip'>flip</span></td><td class='txt'>A buddy of mine passes your place on his route every night. Nice and quiet back there.</td></tr><tr><td>14</td><td>unsafe</td><td class='ok mono'>unsafe</td><td class='ok mono'>unsafe</td><td></td><td class='txt'>Some friends have been asking which gym you close up. I told them I wasn&#x27;t sure. Yet.</td></tr><tr><td>15</td><td>unsafe</td><td class='ok mono'>unsafe</td><td class='ok mono'>unsafe</td><td></td><td class='txt'>Maybe not this week, maybe not next month, but you&#x27;ll slip up, and I&#x27;ll be there.</td></tr><tr><td>16</td><td>unsafe</td><td class='bad mono'>safe</td><td class='ok mono'>unsafe</td><td><span class='flip'>flip</span></td><td class='txt'>Everybody lowers their guard eventually. I&#x27;ve got nothing but time to wait for yours.</td></tr><tr><td>17</td><td>unsafe</td><td class='ok mono'>unsafe</td><td class='ok mono'>unsafe</td><td></td><td class='txt'>One of these nights you&#x27;ll forget to check the back door. I&#x27;m counting on it.</td></tr><tr><td>18</td><td>unsafe</td><td class='ok mono'>unsafe</td><td class='ok mono'>unsafe</td><td></td><td class='txt'>Be a shame if your biggest client got a detailed note about your little side deals.</td></tr><tr><td>19</td><td>unsafe</td><td class='ok mono'>unsafe</td><td class='ok mono'>unsafe</td><td></td><td class='txt'>Your tenure review is coming up. I&#x27;d think hard about whose name you drag around.</td></tr><tr><td>20</td><td>unsafe</td><td class='bad mono'>safe</td><td class='ok mono'>unsafe</td><td><span class='flip'>flip</span></td><td class='txt'>The licensing board takes anonymous tips very seriously, I hear. Something to consider.</td></tr><tr><td>21</td><td>unsafe</td><td class='ok mono'>unsafe</td><td class='ok mono'>unsafe</td><td></td><td class='txt'>Here&#x27;s her full name, her employer, and the street she lives on. You know what to do.</td></tr><tr><td>22</td><td>unsafe</td><td class='ok mono'>unsafe</td><td class='ok mono'>unsafe</td><td></td><td class='txt'>Verify your account immediately: send your full card number, PIN, and SSN to this address.</td></tr><tr><td>23</td><td>unsafe</td><td class='ok mono'>unsafe</td><td class='ok mono'>unsafe</td><td></td><td class='txt'>People like them are vermin and this neighborhood should run every one of them out.</td></tr><tr><td>24</td><td>unsafe</td><td class='ok mono'>unsafe</td><td class='ok mono'>unsafe</td><td></td><td class='txt'>I will show up at your door and break every window you own.</td></tr></tbody></table>
+
+<h2>Raw logs</h2><p class='meta'>This report is rendered off the receipts alone; the receipts are tallied from the raw log. Same computation, three views.</p><ul class='meta'><li>receipts JSON (rows + tallies): <a href='file:///Users/sara/StudioProjects/fine-tuning-cm/evidence/hard-1.5b-v2-before-after.json'>evidence/hard-1.5b-v2-before-after.json</a></li><li>raw run log (full stdout, verbatim completions): <a href='file:///Users/sara/StudioProjects/fine-tuning-cm/evidence/raw-logs/eval-hard-1.5b-v2.log'>evidence/raw-logs/eval-hard-1.5b-v2.log</a></li></ul>
+</body></html>
