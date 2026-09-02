@@ -1,0 +1,27 @@
+{
+  "model": "mlx-community/Qwen2.5-1.5B-Instruct-4bit",
+  "adapter_path": null,
+  "holdout": "data/real/prepared/holdout.jsonl",
+  "n": 24,
+  "baseline": {
+    "n": 24,
+    "correct": 14,
+    "accuracy": 0.5833333333333334,
+    "per_label_accuracy": {
+      "safe": 0.25,
+      "unsafe": 0.9166666666666666
+    },
+    "confusion": {
+      "safe": {
+        "unsafe": 9,
+        "safe": 3
+      },
+      "unsafe": {
+        "unsafe": 11,
+        "safe": 1
+      }
+    },
+    "n_none": 0,
+    "n_ambiguous": 0
+  }
+}

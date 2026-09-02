@@ -13,6 +13,7 @@ the base MLX model, the tuned MLX model, or a live Ollama sanity check.
 from __future__ import annotations
 
 import asyncio
+import copy
 import json
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
@@ -118,6 +119,58 @@ def _print_rows(tag: str, r: EvalResult) -> None:
         print(f"  {mark}  gold={row.gold:<6} pred={row.pred!s:<6} | {row.raw!r}")
 
 
+def _strip_rows(result: dict) -> dict:
+    """Return a copy with the per-row raw text removed - the derived-metrics-only
+    view that is safe to commit for the REAL dataset (raw toxic comments never leave
+    data/real/). Accuracy, per-label, the confusion COUNTS, and the non-answer/hedge
+    tallies all survive; only the raw comment text + raw completions are dropped."""
+    slim = copy.deepcopy(result)
+    for key in ("baseline", "before", "after"):
+        if isinstance(slim.get(key), dict):
+            slim[key].pop("rows", None)
+    return slim
+
+
+async def baseline(
+    model: str,
+    holdout_path: str,
+    receipts_path: str | None = None,
+    metrics_path: str | None = None,
+) -> dict:
+    """Run ONLY the base model (no adapter) on the held-out slice - the honest
+    starting number BEFORE any training (the 'before' half on its own, for Phase 2's
+    baseline read when no adapter exists yet). Writes a full receipt (with raw rows,
+    keep git-ignored) and/or a metrics-only receipt (no text, committable)."""
+    from ft_cm.providers.mlx_provider import MLXProvider
+
+    holdout = load_holdout(holdout_path)
+    base = MLXProvider(model=model, adapter_path=None, system=SYSTEM_PROMPT)
+    ev = await evaluate(base, holdout)
+
+    print(_summary("baseline", ev))
+    print(f"[grid] confusion gold->pred: {json.dumps(ev.confusion)}")
+    _print_rows("baseline", ev)
+
+    result = {
+        "model": model,
+        "adapter_path": None,
+        "holdout": holdout_path,
+        "n": ev.n,
+        "baseline": asdict(ev),
+    }
+    if receipts_path:
+        rp = Path(receipts_path)
+        rp.parent.mkdir(parents=True, exist_ok=True)
+        rp.write_text(json.dumps(result, indent=2))
+        print(f"[receipts:full] -> {rp} (contains raw comment text - keep git-ignored)")
+    if metrics_path:
+        mp = Path(metrics_path)
+        mp.parent.mkdir(parents=True, exist_ok=True)
+        mp.write_text(json.dumps(_strip_rows(result), indent=2))
+        print(f"[receipts:metrics] -> {mp} (derived metrics only, no raw text - committable)")
+    return result
+
+
 def _assert_adapter_present(adapter_path: str) -> None:
     """Fail loudly if the adapter is missing. A typo'd or absent adapter_path makes
     mlx_lm.load silently serve the BASE model, so `tuned` would equal `base` and the
@@ -186,5 +239,18 @@ if __name__ == "__main__":
     ap.add_argument("--adapter", default=str(ADAPTER_PATH))
     ap.add_argument("--holdout", default="data/smoke/prepared/holdout.jsonl")
     ap.add_argument("--receipts", default="evidence/smoke-before-after.json")
+    ap.add_argument(
+        "--baseline-only",
+        action="store_true",
+        help="run only the base model (no adapter) - the pre-training baseline",
+    )
+    ap.add_argument(
+        "--metrics",
+        default=None,
+        help="baseline-only: committable metrics-only receipt path (no raw text)",
+    )
     args = ap.parse_args()
-    asyncio.run(before_after(args.model, args.adapter, args.holdout, args.receipts))
+    if args.baseline_only:
+        asyncio.run(baseline(args.model, args.holdout, args.receipts, args.metrics))
+    else:
+        asyncio.run(before_after(args.model, args.adapter, args.holdout, args.receipts))

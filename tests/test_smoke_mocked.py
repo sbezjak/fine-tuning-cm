@@ -2,7 +2,7 @@ import pytest
 import respx
 from httpx import Response
 
-from ft_cm.eval import evaluate
+from ft_cm.eval import _strip_rows, evaluate
 from ft_cm.providers.base import Provider
 from ft_cm.providers.ollama import OllamaProvider
 
@@ -48,3 +48,21 @@ async def test_evaluate_counts_non_answers_and_confusion():
     assert result.accuracy == 0.5
     assert result.n_none == 1
     assert result.confusion["unsafe"]["none"] == 1
+
+
+@pytest.mark.mocked
+def test_strip_rows_drops_raw_text_keeps_metrics():
+    # The committable receipt for REAL data must carry NO raw comment text.
+    full = {
+        "n": 2,
+        "baseline": {
+            "accuracy": 0.5,
+            "confusion": {"unsafe": {"safe": 1}},
+            "rows": [{"text": "a real toxic comment", "raw": "safe"}],
+        },
+    }
+    slim = _strip_rows(full)
+    assert "rows" not in slim["baseline"]  # raw text gone
+    assert slim["baseline"]["accuracy"] == 0.5  # metrics kept
+    assert slim["baseline"]["confusion"] == {"unsafe": {"safe": 1}}
+    assert full["baseline"]["rows"]  # original untouched (deep copy)
