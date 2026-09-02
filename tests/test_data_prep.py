@@ -2,7 +2,7 @@ import json
 
 import pytest
 
-from ft_cm.data_prep import prepare, stratified_split, to_chat
+from ft_cm.data_prep import dedup_near, max_cross_jaccard, prepare, stratified_split, to_chat
 from ft_cm.taxonomy import LABELS
 
 
@@ -64,3 +64,41 @@ def test_prepare_rejects_bad_label(tmp_path):
     src.write_text(json.dumps({"text": "x", "label": "toxic"}) + "\n")
     with pytest.raises(ValueError):
         prepare(src, tmp_path / "out")
+
+
+@pytest.mark.mocked
+def test_dedup_near_drops_reposts_keeps_distinct():
+    recs = [
+        {"text": "the health care bill takes insurance from a baby", "label": "unsafe"},
+        {"text": "The health care bill takes insurance from a baby!", "label": "unsafe"},  # near-dup
+        {"text": "a completely different comment about gardening", "label": "safe"},
+    ]
+    kept = dedup_near(recs, threshold=0.5)
+    assert len(kept) == 2  # the near-dup repost is dropped, the distinct row stays
+    assert kept[0]["text"] == recs[0]["text"]  # first occurrence is the one kept
+
+
+@pytest.mark.mocked
+def test_dedup_off_by_default_smoke_unchanged(tmp_path):
+    # dedup_threshold=None (default) must not drop anything: smoke prep stays identical.
+    src = tmp_path / "src.jsonl"
+    src.write_text("".join(json.dumps(r) + "\n" for r in _balanced()))
+    counts = prepare(src, tmp_path / "out", seed=0)
+    assert counts["train"] + counts["valid"] + counts["test"] == 20
+    assert "dropped_near_dup" not in counts  # no dedup path taken
+
+
+@pytest.mark.mocked
+def test_prepare_reports_leakage_guard(tmp_path):
+    src = tmp_path / "src.jsonl"
+    src.write_text("".join(json.dumps(r) + "\n" for r in _balanced()))
+    counts = prepare(src, tmp_path / "out", seed=0, dedup_threshold=0.5)
+    # distinct synthetic rows -> held-out shares no near-dup with train/valid.
+    assert counts["max_holdout_train_jaccard"] < 0.5
+
+
+@pytest.mark.mocked
+def test_max_cross_jaccard_catches_overlap():
+    a = [{"text": "one two three four", "label": "safe"}]
+    b = [{"text": "one two three four", "label": "safe"}]  # identical token set
+    assert max_cross_jaccard(a, b) == 1.0
