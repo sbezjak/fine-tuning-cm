@@ -59,6 +59,18 @@ def _pct(x: float) -> str:
     return f"{x:.0%}"
 
 
+def _file_link(p: Path | str) -> str:
+    # Show the path as given (readable, usually repo-relative) and link it as a
+    # file:// URI so it opens locally. The link is inert when the HTML is viewed on
+    # another device - the path text stays the useful part, and both name the source.
+    path = Path(p)
+    try:
+        href = path.resolve().as_uri()
+    except (ValueError, OSError):
+        href = str(path)
+    return f"<a href='{_esc(href)}'>{_esc(str(p))}</a>"
+
+
 def _summary_table(rep: dict) -> str:
     b, a = rep["before"], rep["after"]
     head = (
@@ -131,11 +143,40 @@ def _trace_table(rep: dict) -> str:
     return f"<table><thead>{head}</thead><tbody>{''.join(rows)}</tbody></table>"
 
 
-def render_report(rep: dict, out_path: Path | str, *, title: str | None = None) -> Path:
+def _provenance(receipts_path: Path | str | None, raw_log: Path | str | None) -> str:
+    # The evidence chain: raw run log (terse, verbatim completions) -> receipts JSON
+    # (rows + tallies) -> this HTML. Cite both so any number here traces back to the
+    # untruncated log that produced it, never taken on faith.
+    if not receipts_path and not raw_log:
+        return ""
+    items = []
+    if receipts_path:
+        items.append(f"receipts JSON (rows + tallies): {_file_link(receipts_path)}")
+    if raw_log:
+        items.append(f"raw run log (full stdout, verbatim completions): {_file_link(raw_log)}")
+    lis = "".join(f"<li>{it}</li>" for it in items)
+    return (
+        "<h2>Raw logs</h2>"
+        "<p class='meta'>This report is rendered off the receipts alone; the receipts are "
+        "tallied from the raw log. Same computation, three views.</p>"
+        f"<ul class='meta'>{lis}</ul>"
+    )
+
+
+def render_report(
+    rep: dict,
+    out_path: Path | str,
+    *,
+    title: str | None = None,
+    receipts_path: Path | str | None = None,
+    raw_log: Path | str | None = None,
+) -> Path:
     """Build the self-contained HTML report from a receipts dict and write it.
 
     Everything comes off the receipts alone (no model call), so it regenerates for
-    free whenever the framing changes. Returns the path written."""
+    free whenever the framing changes. `receipts_path`/`raw_log` are cited in a
+    provenance footer so every number traces back to the untruncated source log.
+    Returns the path written."""
     title = title or f"Before/after eval - {rep['model']}"
     generated = dt.datetime.now(dt.UTC).strftime("%Y-%m-%d %H:%M:%SZ")
 
@@ -166,6 +207,8 @@ this cell is a regression the headline number hides.</p>
 completion (green correct, red wrong). <span class="flip">flip</span> marks rows where the
 adapter changed the answer; the tables above are computed from these.</p>
 {_trace_table(rep)}
+
+{_provenance(receipts_path, raw_log)}
 </body></html>"""
 
     path = Path(out_path)
@@ -179,11 +222,18 @@ def main() -> None:
     ap.add_argument("receipts", help="path to a receipts JSON written by ft_cm.eval")
     ap.add_argument("--out", default=None, help="output HTML path (default: reports/<stem>.html)")
     ap.add_argument("--title", default=None)
+    ap.add_argument(
+        "--raw-log",
+        default=None,
+        help="path to the run-evidence raw log to cite in the provenance footer",
+    )
     args = ap.parse_args()
 
     rep = json.loads(Path(args.receipts).read_text())
     out = args.out or f"reports/{Path(args.receipts).stem}.html"
-    path = render_report(rep, out, title=args.title)
+    path = render_report(
+        rep, out, title=args.title, receipts_path=args.receipts, raw_log=args.raw_log
+    )
     print(f"[report] wrote {path}")
 
 
