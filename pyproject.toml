@@ -23,6 +23,13 @@ train = [
     "mlx>=0.18",
     "mlx-lm>=0.18",
 ]
+# The real-dataset pull (HuggingFace `datasets`). Isolated too, so the mocked
+# suite + eval harness never install the heavy Arrow/HF stack - only
+# scripts/download-dataset.sh needs it. Streams google/civil_comments (CC0);
+# raw text lands git-ignored under data/real/.
+data = [
+    "datasets>=2.19",
+]
 
 [tool.hatch.build.targets.wheel]
 packages = ["ft_cm"]

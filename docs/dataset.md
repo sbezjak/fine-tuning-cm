@@ -23,7 +23,11 @@ it measure the harness, not moderation quality, and are never reported as a resu
                      raw text itself. We still do NOT republish raw text here (see
                      handling rules); CC0 removes the LICENSE barrier to publishing
                      derived labels/metrics, which is all this repo publishes.
-- Retrieved:         (filled in by scripts/download-dataset.sh on first pull)
+- Retrieved:         2026-09-02, pinned to dataset revision
+                     f2970eb3a55777454c94069077cc8d9b5866312d (a HuggingFace commit
+                     SHA). Every pull records that SHA + a content hash in a
+                     committable manifest (evidence/dataset/*.manifest.json) so a
+                     re-pull is verifiable and upstream drift is caught loudly.
 - Download:          `scripts/download-dataset.sh` -> `data/real/` (git-ignored),
                      via HuggingFace `datasets`
                      (`load_dataset("google/civil_comments")`). No login/token needed.
@@ -34,7 +38,17 @@ it measure the harness, not moderation quality, and are never reported as a resu
                      We BINARIZE it to the taxonomy's single label:
                        unsafe  if toxicity >= TAU
                        safe    otherwise
-                     TAU is a chosen threshold (a conceptual call - start 0.5).
+                     TAU = 0.7 (chosen 2026-09-02 after eyeballing both). TAU is
+                     WHERE we draw the safe/unsafe line on the vote fraction. At
+                     0.5 (bare majority) the "unsafe" bucket mislabeled genuinely
+                     civil rows - factual polling, mild disagreement, even a
+                     self-deprecating line - because ~half of a handful of raters
+                     flagged them. Raising to 0.7 requires stronger rater agreement,
+                     dropping those and tightening "unsafe" toward real hostility /
+                     harm - a better fit for this harm-focused, asymmetric-cost
+                     domain (a miss >> an over-flag). Receipts of the comparison:
+                     evidence/dataset/civil-comments-tau50.manifest.json (0.5) and
+                     civil-comments-tau70.manifest.json (0.7, the chosen slice).
                      The binarize is applied at download time; only the resulting
                      safe/unsafe label flows through data prep, exactly like smoke.
 

@@ -1,0 +1,16 @@
+{
+  "dataset_id": "google/civil_comments",
+  "revision": "f2970eb3a55777454c94069077cc8d9b5866312d",
+  "split": "test",
+  "tau": 0.7,
+  "seed": 0,
+  "n": 24,
+  "buffer_size": 10000,
+  "retrieved": "2026-09-02",
+  "class_balance": {
+    "safe": 12,
+    "unsafe": 12
+  },
+  "row_count": 24,
+  "content_sha256": "141ce01db507829b4e5d86324e490f691256eb14d1df2de73f1f2e04751688c4"
+}
