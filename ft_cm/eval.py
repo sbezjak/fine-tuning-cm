@@ -192,7 +192,11 @@ def _assert_adapter_present(adapter_path: str) -> None:
 
 
 async def before_after(
-    model: str, adapter_path: str, holdout_path: str, receipts_path: str | None = None
+    model: str,
+    adapter_path: str,
+    holdout_path: str,
+    receipts_path: str | None = None,
+    metrics_path: str | None = None,
 ) -> dict:
     """Run base (no adapter) then tuned (with adapter) on the held-out slice."""
     from ft_cm.providers.mlx_provider import MLXProvider
@@ -225,7 +229,12 @@ async def before_after(
     }
     if receipts_path:
         Path(receipts_path).write_text(json.dumps(result, indent=2))
-        print(f"[receipts] -> {receipts_path}")
+        print(f"[receipts:full] -> {receipts_path} (contains raw comment text - keep git-ignored)")
+    if metrics_path:
+        mp = Path(metrics_path)
+        mp.parent.mkdir(parents=True, exist_ok=True)
+        mp.write_text(json.dumps(_strip_rows(result), indent=2))
+        print(f"[receipts:metrics] -> {mp} (derived metrics only, no raw text - committable)")
     return result
 
 
@@ -247,10 +256,12 @@ if __name__ == "__main__":
     ap.add_argument(
         "--metrics",
         default=None,
-        help="baseline-only: committable metrics-only receipt path (no raw text)",
+        help="committable metrics-only receipt path (no raw text); works in both modes",
     )
     args = ap.parse_args()
     if args.baseline_only:
         asyncio.run(baseline(args.model, args.holdout, args.receipts, args.metrics))
     else:
-        asyncio.run(before_after(args.model, args.adapter, args.holdout, args.receipts))
+        asyncio.run(
+            before_after(args.model, args.adapter, args.holdout, args.receipts, args.metrics)
+        )
