@@ -1,0 +1,35 @@
+# MLX-LM LoRA config for the REAL run (Civil Comments, TAU=0.7), M1 / 8 GB.
+# Same base as the step-d baseline (1.5B) so the SAME frozen 24-row held-out runs
+# through base and tuned - that identity is what makes step f a valid before/after.
+#
+#   uv run --group train mlx_lm.lora --config configs/lora-real.yaml
+#
+# Real comments are LONGER than smoke (max ~1238 chars ~= 309 tokens vs smoke's ~15),
+# so the activation footprint is bigger - this is where the 8 GB ceiling may bite.
+# max_seq_length 512 covers the longest row (no truncation); the memory levers if it
+# OOMs, in order of impact: batch_size (already 1), max_seq_length, num_layers.
+# Validate memory cheaply first with `iters: 2` before the full 100-iter run.
+
+model: "mlx-community/Qwen2.5-1.5B-Instruct-4bit"
+train: true
+data: "data/real/prepared"
+adapter_path: "adapters/real"
+
+fine_tune_type: lora
+num_layers: 8
+
+batch_size: 1
+max_seq_length: 512
+iters: 100
+learning_rate: 1.0e-4
+
+steps_per_report: 10
+steps_per_eval: 50
+save_every: 50
+val_batches: 2
+grad_checkpoint: true
+
+lora_parameters:
+  rank: 8
+  scale: 20.0
+  dropout: 0.0
