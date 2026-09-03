@@ -238,6 +238,171 @@ async def before_after(
     return result
 
 
+def _score_split(provider, path: str) -> tuple[list[float], list[str]]:
+    """P(unsafe) + gold for every row in a split, via the decision-token read. Handles
+    both on-disk schemas: the holdout is {text,label}; the prepared train/valid split is
+    chat {messages:[system,user,assistant]}, where the user turn is ALREADY the built
+    prompt and the assistant turn is the gold label."""
+    scores: list[float] = []
+    golds: list[str] = []
+    for line in Path(path).read_text().splitlines():
+        line = line.strip()
+        if not line:
+            continue
+        r = json.loads(line)
+        if "text" in r:
+            prompt, gold = build_prompt(r["text"]), r["label"]
+        else:
+            msgs = r["messages"]
+            prompt = next(m["content"] for m in msgs if m["role"] == "user")
+            gold = next(m["content"] for m in msgs if m["role"] == "assistant").strip()
+        scores.append(provider.decision_score(prompt).p_unsafe)
+        golds.append(gold)
+    return scores, golds
+
+
+def _strip_logprob_text(result: dict) -> dict:
+    """Committable view of a logprob receipt: drop the raw comment TEXT from each row,
+    keep gold + the numeric scores. Every curve/sweep/AUC stays recomputable from the
+    committed file (gold + scores are derived metadata, not raw toxic text)."""
+    slim = copy.deepcopy(result)
+    for row in slim.get("rows", []):
+        row.pop("text", None)
+    return slim
+
+
+async def logprob_eval(
+    model: str,
+    adapter_path: str,
+    holdout_path: str,
+    valid_path: str,
+    max_misses: int = 1,
+    receipts_path: str | None = None,
+    metrics_path: str | None = None,
+) -> dict:
+    """Step-g eval: read the DECISION-TOKEN confidence (continuous P(unsafe)) instead
+    of the decoded word, then calibrate. Reports (1) threshold-free ranking quality -
+    base vs tuned ROC/PR-AUC; (2) the tuned threshold sweep; (3) the HONEST operating
+    point - selected on the frozen valid split and applied unchanged to holdout, next
+    to the (optimistic) holdout-optimal point, so the transfer is visible; (4) the
+    selective-review band. The single-decode scorer could express none of these."""
+    from ft_cm import calibration as cal
+    from ft_cm.providers.mlx_provider import MLXProvider
+
+    _assert_adapter_present(adapter_path)
+    holdout = load_holdout(holdout_path)
+    base = MLXProvider(model=model, adapter_path=None, system=SYSTEM_PROMPT)
+    tuned = MLXProvider(model=model, adapter_path=adapter_path, system=SYSTEM_PROMPT)
+
+    rows: list[dict] = []
+    base_p: list[float] = []
+    tuned_p: list[float] = []
+    golds: list[str] = []
+    for item in holdout:
+        b = base.decision_score(build_prompt(item["text"]))
+        t = tuned.decision_score(build_prompt(item["text"]))
+        base_p.append(b.p_unsafe)
+        tuned_p.append(t.p_unsafe)
+        golds.append(item["label"])
+        rows.append(
+            {
+                "text": item["text"],
+                "gold": item["label"],
+                "base_p": b.p_unsafe,
+                "tuned_p": t.p_unsafe,
+                "off_label": t.off_label,
+            }
+        )
+
+    v_scores, v_golds = _score_split(tuned, valid_path)
+
+    auc = {
+        "base": {
+            "roc": cal.roc_auc(base_p, golds),
+            "pr": cal.average_precision(base_p, golds),
+        },
+        "tuned": {
+            "roc": cal.roc_auc(tuned_p, golds),
+            "pr": cal.average_precision(tuned_p, golds),
+        },
+    }
+
+    # (3) honest operating point: select threshold + band on VALID, freeze, apply to
+    # holdout - next to the holdout-optimal point (tuned on the test set = optimistic).
+    band_widths = [x / 100 for x in range(1, 13)]
+    op_valid = cal.pick_operating_point(v_scores, v_golds, max_misses)
+    band = cal.smallest_safe_band(v_scores, v_golds, op_valid.threshold, band_widths)
+    op_holdout_optimal = cal.pick_operating_point(tuned_p, golds, max_misses)
+    transfer = {
+        "max_misses": max_misses,
+        "selected_on_valid": {
+            "threshold": op_valid.threshold,
+            "band": band,
+            "valid_grid": op_valid.as_dict(),
+            "valid_auto": {
+                "review": (va := cal.auto_decision(v_scores, v_golds, op_valid.threshold, band)).review,
+                "review_fraction": va.review_fraction,
+                "auto_grid": va.auto.as_dict(),
+            },
+        },
+        "applied_to_holdout": {
+            "grid": cal.confusion_at(tuned_p, golds, op_valid.threshold).as_dict(),
+            "auto": {
+                "review": (ha := cal.auto_decision(tuned_p, golds, op_valid.threshold, band)).review,
+                "review_fraction": ha.review_fraction,
+                "auto_grid": ha.auto.as_dict(),
+            },
+        },
+        "holdout_optimal_reference": op_holdout_optimal.as_dict(),
+        "threshold_gap": abs(op_valid.threshold - op_holdout_optimal.threshold),
+    }
+
+    sweep = [
+        cal.confusion_at(tuned_p, golds, i / 10).as_dict() for i in range(1, 10)
+    ]
+
+    print(
+        f"[auc] base roc={auc['base']['roc']:.3f} pr={auc['base']['pr']:.3f}  "
+        f"tuned roc={auc['tuned']['roc']:.3f} pr={auc['tuned']['pr']:.3f}"
+    )
+    print(
+        f"[transfer] valid-picked t={op_valid.threshold:.3f} band=+/-{band:.2f} -> "
+        f"holdout misses={transfer['applied_to_holdout']['grid']['misses']} "
+        f"(auto misses={transfer['applied_to_holdout']['auto']['auto_grid']['misses']}); "
+        f"holdout-optimal t={op_holdout_optimal.threshold:.3f} "
+        f"gap={transfer['threshold_gap']:.3f}"
+    )
+    print("[rows] per-row base_p -> tuned_p (raw scores, the ground truth):")
+    for row in rows:
+        print(
+            f"  gold={row['gold']:<6} base={row['base_p']:.3f} tuned={row['tuned_p']:.3f} "
+            f"off={row['off_label']:.3f} | {row['text'][:44]!r}"
+        )
+
+    result = {
+        "model": model,
+        "adapter_path": adapter_path,
+        "holdout": holdout_path,
+        "valid": valid_path,
+        "n": len(holdout),
+        "auc": auc,
+        "sweep": sweep,
+        "transfer": transfer,
+        "rows": rows,
+    }
+    if receipts_path:
+        rp = Path(receipts_path)
+        rp.parent.mkdir(parents=True, exist_ok=True)
+        rp.write_text(json.dumps(result, indent=2))
+        print(f"[receipts:full] -> {rp} (contains raw comment text - keep git-ignored)")
+    if metrics_path:
+        mp = Path(metrics_path)
+        mp.parent.mkdir(parents=True, exist_ok=True)
+        mp.write_text(json.dumps(_strip_logprob_text(result), indent=2))
+        print(f"[receipts:metrics] -> {mp} (derived metrics only, no raw text - committable)")
+    return result
+
+
 if __name__ == "__main__":
     import argparse
 
@@ -254,12 +419,40 @@ if __name__ == "__main__":
         help="run only the base model (no adapter) - the pre-training baseline",
     )
     ap.add_argument(
+        "--logprob",
+        action="store_true",
+        help="decision-token (P(unsafe)) eval: AUC + threshold sweep + valid->holdout transfer",
+    )
+    ap.add_argument(
+        "--valid",
+        default="data/real/prepared/valid.jsonl",
+        help="split the operating threshold is SELECTED on (logprob mode); holdout is reported",
+    )
+    ap.add_argument(
+        "--max-misses",
+        type=int,
+        default=1,
+        help="hard constraint for the operating point (max unsafe->safe misses)",
+    )
+    ap.add_argument(
         "--metrics",
         default=None,
-        help="committable metrics-only receipt path (no raw text); works in both modes",
+        help="committable metrics-only receipt path (no raw text); works in all modes",
     )
     args = ap.parse_args()
-    if args.baseline_only:
+    if args.logprob:
+        asyncio.run(
+            logprob_eval(
+                args.model,
+                args.adapter,
+                args.holdout,
+                args.valid,
+                args.max_misses,
+                args.receipts,
+                args.metrics,
+            )
+        )
+    elif args.baseline_only:
         asyncio.run(baseline(args.model, args.holdout, args.receipts, args.metrics))
     else:
         asyncio.run(
