@@ -1,0 +1,36 @@
+# MLX-LM LoRA config for the HARM-BINARY ablation (safe/unsafe verdict axis),
+# M1 / 8 GB. A byte-for-byte copy of lora-real-grounds.yaml EXCEPT `data` and
+# `adapter_path`: the ablation isolates "predict the ground" from "relabel off
+# sub-scores", so every LoRA knob (num_layers 8, rank 8, scale 20, batch 1,
+# lr 1e-4, iters 400, save/eval every 50) is held identical ON PURPOSE. The ONLY
+# change from the grounds run is the training TARGET (safe/unsafe, not the 5 grounds)
+# - same frozen rows, same split, relabeled ground -> verdict by ft_cm.relabel_binary.
+#
+#   FT_CM_TASK=binary uv run --group train mlx_lm.lora --config configs/lora-real-binary.yaml
+#
+# Validate memory cheaply with `--iters 2` (throwaway adapter) before the full run.
+# Checkpoint-pick by val loss like the grounds run (grounds picked it200).
+
+model: "mlx-community/Qwen2.5-1.5B-Instruct-4bit"
+train: true
+data: "data/real/prepared-binary"
+adapter_path: "adapters/real-binary"
+
+fine_tune_type: lora
+num_layers: 8
+
+batch_size: 1
+max_seq_length: 512
+iters: 400
+learning_rate: 1.0e-4
+
+steps_per_report: 10
+steps_per_eval: 50
+save_every: 50
+val_batches: 8
+grad_checkpoint: true
+
+lora_parameters:
+  rank: 8
+  scale: 20.0
+  dropout: 0.0

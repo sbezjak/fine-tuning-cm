@@ -1,0 +1,79 @@
+{
+  "model": "mlx-community/Qwen2.5-1.5B-Instruct-4bit",
+  "adapter_path": "adapters/real-binary-it200",
+  "holdout": "data/real/prepared-binary/holdout.jsonl",
+  "n": 90,
+  "before": {
+    "n": 90,
+    "correct": 48,
+    "accuracy": 0.5333333333333333,
+    "per_label_accuracy": {
+      "unsafe": 0.8148148148148148,
+      "safe": 0.1111111111111111
+    },
+    "confusion": {
+      "unsafe": {
+        "none": 9,
+        "unsafe": 44,
+        "safe": 1
+      },
+      "safe": {
+        "unsafe": 28,
+        "safe": 4,
+        "none": 4
+      }
+    },
+    "n_none": 13,
+    "n_ambiguous": 0
+  },
+  "after": {
+    "n": 90,
+    "correct": 71,
+    "accuracy": 0.7888888888888889,
+    "per_label_accuracy": {
+      "unsafe": 0.7222222222222222,
+      "safe": 0.8888888888888888
+    },
+    "confusion": {
+      "unsafe": {
+        "unsafe": 39,
+        "safe": 15
+      },
+      "safe": {
+        "safe": 32,
+        "unsafe": 4
+      }
+    },
+    "n_none": 0,
+    "n_ambiguous": 0
+  },
+  "delta_accuracy": 0.25555555555555554,
+  "verdict": {
+    "before": {
+      "verdict_accuracy": 0.5333333333333333,
+      "verdict_confusion": {
+        "safe": {
+          "safe": 4,
+          "unsafe": 32
+        },
+        "unsafe": {
+          "safe": 10,
+          "unsafe": 44
+        }
+      }
+    },
+    "after": {
+      "verdict_accuracy": 0.7888888888888889,
+      "verdict_confusion": {
+        "safe": {
+          "safe": 32,
+          "unsafe": 4
+        },
+        "unsafe": {
+          "safe": 15,
+          "unsafe": 39
+        }
+      }
+    }
+  }
+}
