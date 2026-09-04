@@ -131,20 +131,35 @@ def _strip_rows(result: dict) -> dict:
     return slim
 
 
+def _make_provider(backend: str, model: str, adapter_path: str | None):
+    """Construct the backend behind the seam. `mlx` is the Apple-Silicon path (base
+    or MLX adapter); `peft` is the CUDA-path twin that loads an HF PEFT adapter
+    LOCALLY (CPU/MPS) so a cloud-trained adapter runs through the SAME eval. Both
+    expose the identical decision_score, so every caller here is backend-agnostic."""
+    if backend == "peft":
+        from ft_cm.providers.peft_provider import PEFTProvider
+
+        return PEFTProvider(model=model, adapter_path=adapter_path, system=SYSTEM_PROMPT)
+    if backend == "mlx":
+        from ft_cm.providers.mlx_provider import MLXProvider
+
+        return MLXProvider(model=model, adapter_path=adapter_path, system=SYSTEM_PROMPT)
+    raise ValueError(f"unknown backend {backend!r} - expected 'mlx' or 'peft'")
+
+
 async def baseline(
     model: str,
     holdout_path: str,
     receipts_path: str | None = None,
     metrics_path: str | None = None,
+    backend: str = "mlx",
 ) -> dict:
     """Run ONLY the base model (no adapter) on the held-out slice - the honest
     starting number BEFORE any training (the 'before' half on its own, for Phase 2's
     baseline read when no adapter exists yet). Writes a full receipt (with raw rows,
     keep git-ignored) and/or a metrics-only receipt (no text, committable)."""
-    from ft_cm.providers.mlx_provider import MLXProvider
-
     holdout = load_holdout(holdout_path)
-    base = MLXProvider(model=model, adapter_path=None, system=SYSTEM_PROMPT)
+    base = _make_provider(backend, model, None)
     ev = await evaluate(base, holdout)
 
     print(_summary("baseline", ev))
@@ -197,14 +212,13 @@ async def before_after(
     holdout_path: str,
     receipts_path: str | None = None,
     metrics_path: str | None = None,
+    backend: str = "mlx",
 ) -> dict:
     """Run base (no adapter) then tuned (with adapter) on the held-out slice."""
-    from ft_cm.providers.mlx_provider import MLXProvider
-
     _assert_adapter_present(adapter_path)
     holdout = load_holdout(holdout_path)
-    base = MLXProvider(model=model, adapter_path=None, system=SYSTEM_PROMPT)
-    tuned = MLXProvider(model=model, adapter_path=adapter_path, system=SYSTEM_PROMPT)
+    base = _make_provider(backend, model, None)
+    tuned = _make_provider(backend, model, adapter_path)
 
     before = await evaluate(base, holdout)
     after = await evaluate(tuned, holdout)
@@ -279,6 +293,7 @@ async def logprob_eval(
     max_misses: int = 1,
     receipts_path: str | None = None,
     metrics_path: str | None = None,
+    backend: str = "mlx",
 ) -> dict:
     """Step-g eval: read the DECISION-TOKEN confidence (continuous P(unsafe)) instead
     of the decoded word, then calibrate. Reports (1) threshold-free ranking quality -
@@ -287,28 +302,31 @@ async def logprob_eval(
     to the (optimistic) holdout-optimal point, so the transfer is visible; (4) the
     selective-review band. The single-decode scorer could express none of these."""
     from ft_cm import calibration as cal
-    from ft_cm.providers.mlx_provider import MLXProvider
 
     _assert_adapter_present(adapter_path)
     holdout = load_holdout(holdout_path)
-    base = MLXProvider(model=model, adapter_path=None, system=SYSTEM_PROMPT)
-    tuned = MLXProvider(model=model, adapter_path=adapter_path, system=SYSTEM_PROMPT)
 
+    # Hold ONE model at a time: score the base over the whole holdout, free it, THEN
+    # load the tuned model. Two 1.5B models at once thrash an 8 GB Mac; scored
+    # sequentially the peak is a single model. The per-row scores are unchanged - each
+    # forward pass is independent - so this is a memory fix, not a numbers change.
+    base = _make_provider(backend, model, None)
+    base_p: list[float] = [base.decision_score(build_prompt(item["text"])).p_unsafe for item in holdout]
+    base.unload()
+
+    tuned = _make_provider(backend, model, adapter_path)
     rows: list[dict] = []
-    base_p: list[float] = []
     tuned_p: list[float] = []
     golds: list[str] = []
-    for item in holdout:
-        b = base.decision_score(build_prompt(item["text"]))
+    for item, bp in zip(holdout, base_p):
         t = tuned.decision_score(build_prompt(item["text"]))
-        base_p.append(b.p_unsafe)
         tuned_p.append(t.p_unsafe)
         golds.append(item["label"])
         rows.append(
             {
                 "text": item["text"],
                 "gold": item["label"],
-                "base_p": b.p_unsafe,
+                "base_p": bp,
                 "tuned_p": t.p_unsafe,
                 "off_label": t.off_label,
             }
@@ -411,6 +429,14 @@ if __name__ == "__main__":
     ap = argparse.ArgumentParser(description="Before/after held-out eval of a LoRA adapter.")
     ap.add_argument("--model", default=BASE_MODEL)
     ap.add_argument("--adapter", default=str(ADAPTER_PATH))
+    ap.add_argument(
+        "--backend",
+        choices=["mlx", "peft"],
+        default="mlx",
+        help="mlx = Apple-Silicon path (MLX adapter); peft = load an HF PEFT adapter "
+        "locally (cloud-trained), same holdout through the same eval. With peft, pass "
+        "the HF base id via --model (e.g. Qwen/Qwen2.5-1.5B-Instruct).",
+    )
     ap.add_argument("--holdout", default="data/smoke/prepared/holdout.jsonl")
     ap.add_argument("--receipts", default="evidence/smoke-before-after.json")
     ap.add_argument(
@@ -450,11 +476,14 @@ if __name__ == "__main__":
                 args.max_misses,
                 args.receipts,
                 args.metrics,
+                args.backend,
             )
         )
     elif args.baseline_only:
-        asyncio.run(baseline(args.model, args.holdout, args.receipts, args.metrics))
+        asyncio.run(baseline(args.model, args.holdout, args.receipts, args.metrics, args.backend))
     else:
         asyncio.run(
-            before_after(args.model, args.adapter, args.holdout, args.receipts, args.metrics)
+            before_after(
+                args.model, args.adapter, args.holdout, args.receipts, args.metrics, args.backend
+            )
         )

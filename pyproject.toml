@@ -30,6 +30,17 @@ train = [
 data = [
     "datasets>=2.19",
 ]
+# The CUDA-path eval: load a cloud-trained HF PEFT adapter LOCALLY (CPU/MPS, no
+# bitsandbytes - that is CUDA-only) so the SAME frozen holdout runs through the
+# SAME eval harness via a PEFTProvider. Isolated like the others: the mocked suite
+# and the MLX path never pull torch/transformers/peft. This is the "train on the
+# cloud T4, keep the Mac for the eval harness" split made real.
+peft = [
+    "torch>=2.2",
+    "transformers>=4.45",
+    "peft>=0.13",
+    "safetensors>=0.4",
+]
 
 [tool.hatch.build.targets.wheel]
 packages = ["ft_cm"]
