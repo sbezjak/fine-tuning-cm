@@ -7,8 +7,13 @@ from ft_cm.taxonomy import LABELS
 
 
 def _balanced(n_each=10):
-    return [{"text": f"safe {i}", "label": "safe"} for i in range(n_each)] + [
-        {"text": f"unsafe {i}", "label": "unsafe"} for i in range(n_each)
+    """A synthetic per-ground balanced set (tame placeholder text, no real content):
+    one distinct row per (ground, i) across all LABELS, so the split/leakage tests
+    exercise the real 5-ground label space."""
+    return [
+        {"text": f"{ground} example number {i}", "label": ground}
+        for ground in LABELS
+        for i in range(n_each)
     ]
 
 
@@ -52,7 +57,7 @@ def test_prepare_writes_all_files(tmp_path):
 
     for name in ("train.jsonl", "valid.jsonl", "test.jsonl", "holdout.jsonl"):
         assert (out / name).is_file()
-    assert counts["train"] + counts["valid"] + counts["test"] == 20
+    assert counts["train"] + counts["valid"] + counts["test"] == len(LABELS) * 10
 
     holdout = [json.loads(x) for x in (out / "holdout.jsonl").read_text().splitlines()]
     assert all("text" in r and "label" in r for r in holdout)
@@ -69,8 +74,8 @@ def test_prepare_rejects_bad_label(tmp_path):
 @pytest.mark.mocked
 def test_dedup_near_drops_reposts_keeps_distinct():
     recs = [
-        {"text": "the health care bill takes insurance from a baby", "label": "unsafe"},
-        {"text": "The health care bill takes insurance from a baby!", "label": "unsafe"},  # near-dup
+        {"text": "the health care bill takes insurance from a baby", "label": "insult"},
+        {"text": "The health care bill takes insurance from a baby!", "label": "insult"},  # near-dup
         {"text": "a completely different comment about gardening", "label": "safe"},
     ]
     kept = dedup_near(recs, threshold=0.5)
@@ -84,7 +89,7 @@ def test_dedup_off_by_default_smoke_unchanged(tmp_path):
     src = tmp_path / "src.jsonl"
     src.write_text("".join(json.dumps(r) + "\n" for r in _balanced()))
     counts = prepare(src, tmp_path / "out", seed=0)
-    assert counts["train"] + counts["valid"] + counts["test"] == 20
+    assert counts["train"] + counts["valid"] + counts["test"] == len(LABELS) * 10
     assert "dropped_near_dup" not in counts  # no dedup path taken
 
 

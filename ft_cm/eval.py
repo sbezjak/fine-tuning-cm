@@ -20,7 +20,7 @@ from pathlib import Path
 
 from ft_cm.providers.base import Provider
 from ft_cm.scorer import extract_label
-from ft_cm.taxonomy import LABELS, SYSTEM_PROMPT, build_prompt
+from ft_cm.taxonomy import LABELS, SYSTEM_PROMPT, build_prompt, verdict
 
 
 @dataclass
@@ -100,6 +100,26 @@ async def evaluate(provider: Provider, holdout: list[dict]) -> EvalResult:
     )
 
 
+def verdict_view(confusion: dict[str, dict[str, int]]) -> dict:
+    """Collapse the 5x5 ground confusion into the binary safe/unsafe VERDICT read
+    (taxonomy.verdict) - the honest publish-decision headline: how often the model's
+    ground implies the right safe/unsafe call. Pure arithmetic on the confusion, so it
+    needs no model re-run and can be recomputed under a different HARM_GROUNDS boundary
+    (the "insult -> safe vs unsafe" dial, for free). A non-answer ('none') is not a
+    valid ground, so it is scored as the WRONG verdict."""
+    total = correct = 0
+    vconf = {"safe": {"safe": 0, "unsafe": 0}, "unsafe": {"safe": 0, "unsafe": 0}}
+    for gold_g, preds in confusion.items():
+        gv = verdict(gold_g)
+        for pred_g, count in preds.items():
+            pv = ("unsafe" if gv == "safe" else "safe") if pred_g == "none" else verdict(pred_g)
+            vconf[gv][pv] += count
+            total += count
+            if pv == gv:
+                correct += count
+    return {"verdict_accuracy": correct / total if total else 0.0, "verdict_confusion": vconf}
+
+
 def _summary(tag: str, r: EvalResult) -> str:
     pl = ", ".join(f"{k}={v:.2f}" for k, v in r.per_label_accuracy.items())
     return (
@@ -162,8 +182,10 @@ async def baseline(
     base = _make_provider(backend, model, None)
     ev = await evaluate(base, holdout)
 
+    vv = verdict_view(ev.confusion)
     print(_summary("baseline", ev))
     print(f"[grid] confusion gold->pred: {json.dumps(ev.confusion)}")
+    print(f"[verdict] safe/unsafe acc={vv['verdict_accuracy']:.3f}  {json.dumps(vv['verdict_confusion'])}")
     _print_rows("baseline", ev)
 
     result = {
@@ -172,6 +194,7 @@ async def baseline(
         "holdout": holdout_path,
         "n": ev.n,
         "baseline": asdict(ev),
+        "verdict": vv,
     }
     if receipts_path:
         rp = Path(receipts_path)
@@ -223,9 +246,15 @@ async def before_after(
     before = await evaluate(base, holdout)
     after = await evaluate(tuned, holdout)
 
+    vb, va = verdict_view(before.confusion), verdict_view(after.confusion)
     print(_summary("before", before))
     print(_summary("after ", after))
-    print(f"[delta] accuracy {after.accuracy - before.accuracy:+.3f}")
+    print(f"[delta] ground accuracy {after.accuracy - before.accuracy:+.3f}")
+    print(
+        f"[verdict] safe/unsafe acc before={vb['verdict_accuracy']:.3f} -> "
+        f"after={va['verdict_accuracy']:.3f} "
+        f"(delta {va['verdict_accuracy'] - vb['verdict_accuracy']:+.3f})"
+    )
     _print_rows("before", before)
     _print_rows("after", after)
 
@@ -240,6 +269,7 @@ async def before_after(
         "before": asdict(before),
         "after": asdict(after),
         "delta_accuracy": after.accuracy - before.accuracy,
+        "verdict": {"before": vb, "after": va},
     }
     if receipts_path:
         Path(receipts_path).write_text(json.dumps(result, indent=2))

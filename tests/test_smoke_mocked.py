@@ -11,10 +11,10 @@ from ft_cm.providers.ollama import OllamaProvider
 @respx.mock
 async def test_ollama_provider_returns_response():
     respx.post("http://localhost:11434/api/generate").mock(
-        return_value=Response(200, json={"response": "unsafe"})
+        return_value=Response(200, json={"response": "threat"})
     )
     out = await OllamaProvider().generate("classify this")
-    assert out == "unsafe"
+    assert out == "threat"
 
 
 class _ScriptedProvider(Provider):
@@ -33,8 +33,8 @@ class _ScriptedProvider(Provider):
 
 @pytest.mark.mocked
 async def test_evaluate_scores_a_perfect_run():
-    holdout = [{"text": "a kind hello", "label": "safe"}, {"text": "a threat", "label": "unsafe"}]
-    provider = _ScriptedProvider({"kind hello": "safe", "threat": "unsafe"})
+    holdout = [{"text": "a kind hello", "label": "safe"}, {"text": "a menace", "label": "threat"}]
+    provider = _ScriptedProvider({"kind hello": "safe", "menace": "threat"})
     result = await evaluate(provider, holdout)
     assert result.accuracy == 1.0
     assert result.n_none == 0
@@ -42,12 +42,12 @@ async def test_evaluate_scores_a_perfect_run():
 
 @pytest.mark.mocked
 async def test_evaluate_counts_non_answers_and_confusion():
-    holdout = [{"text": "a kind hello", "label": "safe"}, {"text": "a threat", "label": "unsafe"}]
-    provider = _ScriptedProvider({"kind hello": "safe", "threat": "I cannot help"})
+    holdout = [{"text": "a kind hello", "label": "safe"}, {"text": "a menace", "label": "threat"}]
+    provider = _ScriptedProvider({"kind hello": "safe", "menace": "I cannot help"})
     result = await evaluate(provider, holdout)
     assert result.accuracy == 0.5
     assert result.n_none == 1
-    assert result.confusion["unsafe"]["none"] == 1
+    assert result.confusion["threat"]["none"] == 1
 
 
 @pytest.mark.mocked
@@ -57,12 +57,12 @@ def test_strip_rows_drops_raw_text_keeps_metrics():
         "n": 2,
         "baseline": {
             "accuracy": 0.5,
-            "confusion": {"unsafe": {"safe": 1}},
+            "confusion": {"threat": {"safe": 1}},
             "rows": [{"text": "a real toxic comment", "raw": "safe"}],
         },
     }
     slim = _strip_rows(full)
     assert "rows" not in slim["baseline"]  # raw text gone
     assert slim["baseline"]["accuracy"] == 0.5  # metrics kept
-    assert slim["baseline"]["confusion"] == {"unsafe": {"safe": 1}}
+    assert slim["baseline"]["confusion"] == {"threat": {"safe": 1}}
     assert full["baseline"]["rows"]  # original untouched (deep copy)
