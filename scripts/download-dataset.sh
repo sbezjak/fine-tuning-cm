@@ -4,9 +4,10 @@
 #   scripts/download-dataset.sh                 # defaults: 24 rows, TAU 0.5, seed 0
 #   scripts/download-dataset.sh --n 30 --tau 0.3
 #
-# Streams google/civil_comments (CC0, no login) via HuggingFace `datasets`,
-# binarizes the continuous toxicity score to safe/unsafe at TAU, and writes a
-# class-balanced {text,label,toxicity} jsonl under data/real/ (git-ignored).
+# TARGETS google/civil_comments (CC0, no login) with DuckDB over the HF parquet
+# (WHERE subscore >= TAU per ground - predicate pushdown, not streamed), labels each
+# row with its harm GROUND via the taxonomy recipe, and writes a class-balanced
+# {text,label,toxicity,<sub-scores>} jsonl under data/real/ (git-ignored).
 #
 # Hard rules (PUBLIC repo, content-moderation domain):
 #   1. Output stays under data/real/ (git-ignored). Raw text is NEVER committed.
@@ -23,5 +24,5 @@ if git ls-files --error-unmatch data/real >/dev/null 2>&1; then
   exit 1
 fi
 
-echo "[download] pulling a tiny balanced slice (datasets group installs on first run)"
+echo "[download] pulling a tiny balanced grounded slice (data group installs on first run)"
 uv run --group data python -m ft_cm.download_data "$@"
