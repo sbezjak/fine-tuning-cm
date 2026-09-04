@@ -33,15 +33,18 @@ HARM_GROUNDS: frozenset[str] = frozenset({"threat", "identity_attack", "sexual"}
 
 # The recipe that assigns each row its ONE gold ground from Civil Comments
 # sub-scores, in priority order (most serious harm wins when several trip). Each
-# ground lists the sub-score column(s) that map to it; `sexual` folds obscene and
-# sexual_explicit (both the profanity/sexual axis, both rare). `severe_toxicity` is
-# intentionally absent: its scale is compressed (never crossed 0.5 in a 20k scan),
-# so it is intensity, not a harm type. `toxicity` is the OLD overall axis, not used.
+# ground lists the sub-score column(s) that map to it. `sexual` is `sexual_explicit`
+# ONLY - in Civil Comments `obscene` means profanity/vulgar language ("holy crap"),
+# not sexual content, so it folds into `insult` (both incivility, verdict safe); a
+# validation pull proved obscene otherwise mislabels swearing about wages as sexual.
+# `severe_toxicity` is intentionally absent: its scale is compressed (never crossed
+# 0.5 in a 20k scan), so it is intensity, not a harm type. `toxicity` is the OLD
+# overall axis, not used.
 GROUND_RECIPE: tuple[tuple[str, tuple[str, ...]], ...] = (
     ("threat", ("threat",)),
     ("identity_attack", ("identity_attack",)),
-    ("sexual", ("obscene", "sexual_explicit")),
-    ("insult", ("insult",)),
+    ("sexual", ("sexual_explicit",)),
+    ("insult", ("insult", "obscene")),
 )
 
 # The sub-score columns the recipe reads (for the data puller to request/validate).
@@ -61,8 +64,8 @@ SYSTEM_PROMPT = (
     "threat - threatens violence or serious harm to someone;\n"
     "identity_attack - attacks or demeans people for a protected identity "
     "(race, religion, nationality, gender, sexuality, disability);\n"
-    "sexual - sexually explicit or obscene content;\n"
-    "insult - rude, demeaning, or name-calling with none of the above;\n"
+    "sexual - sexually explicit content;\n"
+    "insult - rude, profane, or demeaning name-calling with none of the above;\n"
     "safe - none of these.\n"
     "Answer with exactly one word. Do not explain."
 )
@@ -74,12 +77,14 @@ def build_prompt(text: str) -> str:
     return f"Message:\n{text}\n\nLabel:"
 
 
-def assign_ground(scores: dict[str, float], tau: float = 0.5) -> str:
+def assign_ground(scores: dict[str, float], tau: float = 0.7) -> str:
     """Collapse a row's harm sub-scores to ONE gold ground via the priority ladder:
     the first ground in GROUND_RECIPE with any mapped sub-score >= tau wins, else
     `safe`. This is the recipe that labels training rows deterministically - no
-    hand-labeling, no judge. `tau` is the annotator-vote fraction boundary (0.5 =
-    a majority of raters agreed), the one conceptual dial, same as the old binarize."""
+    hand-labeling, no judge. `tau` is the annotator-vote fraction boundary (0.7 = a
+    strong majority of raters agreed), the one conceptual dial. 0.7 over 0.5 keeps
+    the grounds clean: at 0.5 a lot of borderline political/news rows tripped a harm
+    ground (a news report mentioning race scored identity_attack ~0.6)."""
     for ground, cols in GROUND_RECIPE:
         if any(float(scores.get(col, 0.0)) >= tau for col in cols):
             return ground

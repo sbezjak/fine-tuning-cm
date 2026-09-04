@@ -143,7 +143,7 @@ def main() -> None:
     ap.add_argument(
         "--n", type=int, default=len(LABELS) * 6, help="total rows, split evenly per ground"
     )
-    ap.add_argument("--tau", type=float, default=0.5, help="sub-score threshold for the ground recipe")
+    ap.add_argument("--tau", type=float, default=0.7, help="sub-score threshold for the ground recipe")
     ap.add_argument("--seed", type=int, default=0, help="deterministic sample")
     ap.add_argument("--split", default="test", help="source split (test is smallest)")
     ap.add_argument("--buffer-size", type=int, default=10000, help="reservoir shuffle window")
