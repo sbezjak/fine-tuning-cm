@@ -21,6 +21,7 @@ label space cannot drift from the scorer.
 
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass
 
 from ft_cm.logprob import NEGATIVE_LABEL, POSITIVE_LABEL
@@ -70,6 +71,146 @@ def average_precision(scores: list[float], golds: list[str]) -> float:
         ap += (recall - prev_recall) * precision
         prev_recall = recall
     return ap
+
+
+@dataclass(frozen=True)
+class ReliabilityBin:
+    """One bin of a reliability diagram: rows whose predicted P(unsafe) fell in
+    [lo, hi). `mean_pred` is the model's average confidence in the bin, `obs_freq`
+    the fraction actually unsafe. On the diagonal (gap ~ 0) the number is calibrated;
+    obs_freq > mean_pred is UNDER-confident, obs_freq < mean_pred over-confident.
+    Empty bins carry NaN stats and drop out of the ECE weighting."""
+
+    lo: float
+    hi: float
+    count: int
+    mean_pred: float  # mean predicted P(unsafe) over the rows in the bin
+    obs_freq: float  # observed unsafe fraction over the rows in the bin
+
+    @property
+    def gap(self) -> float:
+        return abs(self.mean_pred - self.obs_freq)
+
+    def as_dict(self) -> dict:
+        return {
+            "lo": self.lo,
+            "hi": self.hi,
+            "count": self.count,
+            "mean_pred": self.mean_pred,
+            "obs_freq": self.obs_freq,
+            "gap": self.gap,
+        }
+
+
+def _reliability_bin(lo: float, hi: float, group: list[tuple[float, str]]) -> ReliabilityBin:
+    if not group:
+        return ReliabilityBin(lo, hi, 0, float("nan"), float("nan"))
+    mean_pred = sum(s for s, _ in group) / len(group)
+    obs_freq = sum(1 for _, g in group if g == POSITIVE_LABEL) / len(group)
+    return ReliabilityBin(lo, hi, len(group), mean_pred, obs_freq)
+
+
+def reliability_diagram(
+    scores: list[float], golds: list[str], n_bins: int = 10, *, scheme: str = "width"
+) -> list[ReliabilityBin]:
+    """Bin rows by predicted P(unsafe) and report mean-predicted vs observed-unsafe per
+    bin - the reliability diagram, the read that asks whether the SCORE is a calibrated
+    probability (not just a good RANK, which `roc_auc` already answers).
+
+    scheme="width": fixed equal-width edges (i/n_bins). The standard Guo-et-al. ECE
+    binning; empty bins are KEPT because at small N their emptiness is itself the finding
+    (e.g. a "flag less" adapter that never emits a high score). scheme="frequency":
+    ~equal-count bins (edges are the empirical score range of each ~N/n_bins block), the
+    robustness read when equal-width bins go sparse. Assumes scores in [0, 1]."""
+    if scheme == "width":
+        edges = [i / n_bins for i in range(n_bins + 1)]
+        groups: list[list[tuple[float, str]]] = [[] for _ in range(n_bins)]
+        for s, g in zip(scores, golds):
+            b = min(int(s * n_bins), n_bins - 1)
+            groups[b].append((s, g))
+        return [_reliability_bin(edges[b], edges[b + 1], groups[b]) for b in range(n_bins)]
+    if scheme == "frequency":
+        order = sorted(range(len(scores)), key=lambda i: scores[i])
+        bins: list[ReliabilityBin] = []
+        for b in range(n_bins):
+            block = order[(b * len(order)) // n_bins : ((b + 1) * len(order)) // n_bins]
+            group = [(scores[i], golds[i]) for i in block]
+            lo = min(s for s, _ in group) if group else float("nan")
+            hi = max(s for s, _ in group) if group else float("nan")
+            bins.append(_reliability_bin(lo, hi, group))
+        return bins
+    raise ValueError(f"unknown binning scheme: {scheme!r}")
+
+
+def expected_calibration_error(bins: list[ReliabilityBin]) -> float:
+    """ECE: the average bin gap |mean_pred - obs_freq|, weighted by bin occupancy. One
+    number for how far the probabilities sit off the diagonal. NaN if no rows. WARNING at
+    small N this is dominated by 2-5-row bins and barely defined - read it as a method
+    check, not a trustworthy value."""
+    total = sum(b.count for b in bins)
+    if total == 0:
+        return float("nan")
+    return sum((b.count / total) * b.gap for b in bins if b.count)
+
+
+def _logit(p: float) -> float:
+    eps = 1e-12
+    p = min(max(p, eps), 1 - eps)
+    return math.log(p / (1 - p))
+
+
+def _sigmoid(z: float) -> float:
+    return 1 / (1 + math.exp(-z))
+
+
+def temperature_scale(scores: list[float], temperature: float) -> list[float]:
+    """Rescale confidence by a single scalar T: p_T = sigmoid(logit(p) / T). Because the
+    score is RESTRICTED-BINARY (renormalized over just safe/unsafe), the probability IS
+    the full logit difference, so this is exact temperature scaling from p alone - no raw
+    logits needed. T > 1 SOFTENS toward 0.5 (fix for over-confidence), T < 1 SHARPENS
+    toward the extremes (fix for under-confidence). It is monotonic: ROC-AUC and which
+    side of 0.5 a row lands are UNCHANGED - only the probability values move, so it fixes
+    calibration WITHOUT touching ranking or the 0.5 decision."""
+    return [_sigmoid(_logit(p) / temperature) for p in scores]
+
+
+def negative_log_likelihood(scores: list[float], golds: list[str]) -> float:
+    """Mean binary cross-entropy of the probabilities against the golds (positive=unsafe).
+    The proper scoring rule temperature scaling minimizes - unlike ECE it is smooth in T
+    and penalizes confident wrongness. Lower is better."""
+    eps = 1e-12
+    total = 0.0
+    for p, g in zip(scores, golds):
+        p = min(max(p, eps), 1 - eps)
+        y = 1.0 if g == POSITIVE_LABEL else 0.0
+        total += -(y * math.log(p) + (1 - y) * math.log(1 - p))
+    return total / len(scores) if scores else float("nan")
+
+
+def fit_temperature(
+    scores: list[float], golds: list[str], bounds: tuple[float, float] = (0.05, 20.0)
+) -> float:
+    """The standard post-hoc fix (Guo et al.): the single T minimizing NLL on this split.
+    Golden-section search in log-T (T is multiplicative). Fit on VALID and apply to
+    holdout for the honest number; fit on holdout for the optimistic best-case reference."""
+    invphi = (5**0.5 - 1) / 2
+    a, b = math.log(bounds[0]), math.log(bounds[1])
+
+    def f(log_t: float) -> float:
+        return negative_log_likelihood(temperature_scale(scores, math.exp(log_t)), golds)
+
+    c, d = b - invphi * (b - a), a + invphi * (b - a)
+    fc, fd = f(c), f(d)
+    for _ in range(80):
+        if fc < fd:
+            b, d, fd = d, c, fc
+            c = b - invphi * (b - a)
+            fc = f(c)
+        else:
+            a, c, fc = c, d, fd
+            d = a + invphi * (b - a)
+            fd = f(d)
+    return math.exp((a + b) / 2)
 
 
 @dataclass(frozen=True)
