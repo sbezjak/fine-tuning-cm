@@ -1,0 +1,351 @@
+{
+  "model": "Qwen/Qwen2.5-1.5B-Instruct",
+  "adapter_path": "adapters/real-peft/adapter-iter100",
+  "holdout": "data/real/prepared/holdout.jsonl",
+  "valid": "data/real/prepared/valid.jsonl",
+  "n": 24,
+  "auc": {
+    "base": {
+      "roc": 0.7013888888888888,
+      "pr": 0.6473661686896981
+    },
+    "tuned": {
+      "roc": 0.6875,
+      "pr": 0.658442945942946
+    }
+  },
+  "sweep": [
+    {
+      "threshold": 0.1,
+      "safe_recall": 0.4166666666666667,
+      "unsafe_recall": 0.8333333333333334,
+      "misses": 2,
+      "overflags": 7,
+      "accuracy": 0.625,
+      "tp": 10,
+      "fp": 7,
+      "tn": 5,
+      "fn": 2
+    },
+    {
+      "threshold": 0.2,
+      "safe_recall": 0.5833333333333334,
+      "unsafe_recall": 0.6666666666666666,
+      "misses": 4,
+      "overflags": 5,
+      "accuracy": 0.625,
+      "tp": 8,
+      "fp": 5,
+      "tn": 7,
+      "fn": 4
+    },
+    {
+      "threshold": 0.3,
+      "safe_recall": 0.5833333333333334,
+      "unsafe_recall": 0.5833333333333334,
+      "misses": 5,
+      "overflags": 5,
+      "accuracy": 0.5833333333333334,
+      "tp": 7,
+      "fp": 5,
+      "tn": 7,
+      "fn": 5
+    },
+    {
+      "threshold": 0.4,
+      "safe_recall": 0.6666666666666666,
+      "unsafe_recall": 0.5833333333333334,
+      "misses": 5,
+      "overflags": 4,
+      "accuracy": 0.625,
+      "tp": 7,
+      "fp": 4,
+      "tn": 8,
+      "fn": 5
+    },
+    {
+      "threshold": 0.5,
+      "safe_recall": 0.6666666666666666,
+      "unsafe_recall": 0.5833333333333334,
+      "misses": 5,
+      "overflags": 4,
+      "accuracy": 0.625,
+      "tp": 7,
+      "fp": 4,
+      "tn": 8,
+      "fn": 5
+    },
+    {
+      "threshold": 0.6,
+      "safe_recall": 0.75,
+      "unsafe_recall": 0.5833333333333334,
+      "misses": 5,
+      "overflags": 3,
+      "accuracy": 0.6666666666666666,
+      "tp": 7,
+      "fp": 3,
+      "tn": 9,
+      "fn": 5
+    },
+    {
+      "threshold": 0.7,
+      "safe_recall": 0.75,
+      "unsafe_recall": 0.5,
+      "misses": 6,
+      "overflags": 3,
+      "accuracy": 0.625,
+      "tp": 6,
+      "fp": 3,
+      "tn": 9,
+      "fn": 6
+    },
+    {
+      "threshold": 0.8,
+      "safe_recall": 0.8333333333333334,
+      "unsafe_recall": 0.5,
+      "misses": 6,
+      "overflags": 2,
+      "accuracy": 0.6666666666666666,
+      "tp": 6,
+      "fp": 2,
+      "tn": 10,
+      "fn": 6
+    },
+    {
+      "threshold": 0.9,
+      "safe_recall": 0.8333333333333334,
+      "unsafe_recall": 0.5,
+      "misses": 6,
+      "overflags": 2,
+      "accuracy": 0.6666666666666666,
+      "tp": 6,
+      "fp": 2,
+      "tn": 10,
+      "fn": 6
+    }
+  ],
+  "transfer": {
+    "max_misses": 1,
+    "selected_on_valid": {
+      "threshold": 0.02478643462835591,
+      "band": 0.02,
+      "valid_grid": {
+        "threshold": 0.02478643462835591,
+        "safe_recall": 0.75,
+        "unsafe_recall": 0.9166666666666666,
+        "misses": 1,
+        "overflags": 3,
+        "accuracy": 0.8333333333333334,
+        "tp": 11,
+        "fp": 3,
+        "tn": 9,
+        "fn": 1
+      },
+      "valid_auto": {
+        "review": 4,
+        "review_fraction": 0.16666666666666666,
+        "auto_grid": {
+          "threshold": 0.02478643462835591,
+          "safe_recall": 0.7,
+          "unsafe_recall": 1.0,
+          "misses": 0,
+          "overflags": 3,
+          "accuracy": 0.85,
+          "tp": 10,
+          "fp": 3,
+          "tn": 7,
+          "fn": 0
+        }
+      }
+    },
+    "applied_to_holdout": {
+      "grid": {
+        "threshold": 0.02478643462835591,
+        "safe_recall": 0.4166666666666667,
+        "unsafe_recall": 0.8333333333333334,
+        "misses": 2,
+        "overflags": 7,
+        "accuracy": 0.625,
+        "tp": 10,
+        "fp": 7,
+        "tn": 5,
+        "fn": 2
+      },
+      "auto": {
+        "review": 1,
+        "review_fraction": 0.041666666666666664,
+        "auto_grid": {
+          "threshold": 0.02478643462835591,
+          "safe_recall": 0.36363636363636365,
+          "unsafe_recall": 0.8333333333333334,
+          "misses": 2,
+          "overflags": 7,
+          "accuracy": 0.6086956521739131,
+          "tp": 10,
+          "fp": 7,
+          "tn": 4,
+          "fn": 2
+        }
+      }
+    },
+    "holdout_optimal_reference": {
+      "threshold": 8.797770740886358e-06,
+      "safe_recall": 0.25,
+      "unsafe_recall": 0.9166666666666666,
+      "misses": 1,
+      "overflags": 9,
+      "accuracy": 0.5833333333333334,
+      "tp": 11,
+      "fp": 9,
+      "tn": 3,
+      "fn": 1
+    },
+    "threshold_gap": 0.024777636857615023
+  },
+  "rows": [
+    {
+      "gold": "safe",
+      "base_p": 0.9997152557122512,
+      "tuned_p": 0.01541864406495786,
+      "off_label": 0.0014997448030396043
+    },
+    {
+      "gold": "unsafe",
+      "base_p": 0.9999639827737059,
+      "tuned_p": 0.9913929253377123,
+      "off_label": 0.00048038964083652047
+    },
+    {
+      "gold": "safe",
+      "base_p": 0.9996268156841541,
+      "tuned_p": 0.7874867312030555,
+      "off_label": 0.001307418201292876
+    },
+    {
+      "gold": "unsafe",
+      "base_p": 0.9999309025123636,
+      "tuned_p": 0.1870047458503187,
+      "off_label": 0.0011886219037080537
+    },
+    {
+      "gold": "unsafe",
+      "base_p": 0.9999481289020639,
+      "tuned_p": 0.9964988301788718,
+      "off_label": 0.00031075476793951395
+    },
+    {
+      "gold": "unsafe",
+      "base_p": 0.9980220760936332,
+      "tuned_p": 0.0003859492082681377,
+      "off_label": 0.0003073733568381698
+    },
+    {
+      "gold": "unsafe",
+      "base_p": 0.9836661602989124,
+      "tuned_p": 9.506656106531179e-07,
+      "off_label": 0.0001840868726608047
+    },
+    {
+      "gold": "safe",
+      "base_p": 0.9789957455759422,
+      "tuned_p": 8.796770740886358e-06,
+      "off_label": 0.0032374624449109657
+    },
+    {
+      "gold": "safe",
+      "base_p": 0.9991952098199202,
+      "tuned_p": 0.10505403799044541,
+      "off_label": 0.0018131244548840186
+    },
+    {
+      "gold": "safe",
+      "base_p": 0.9992613969453867,
+      "tuned_p": 0.14024886538159193,
+      "off_label": 0.0020420023817848687
+    },
+    {
+      "gold": "safe",
+      "base_p": 0.8349804127199181,
+      "tuned_p": 4.96405968698981e-08,
+      "off_label": 0.00013878889165186425
+    },
+    {
+      "gold": "safe",
+      "base_p": 0.9999547667856887,
+      "tuned_p": 0.9867182746445136,
+      "off_label": 0.000898434200756526
+    },
+    {
+      "gold": "unsafe",
+      "base_p": 0.9999288613920729,
+      "tuned_p": 0.9775814818891274,
+      "off_label": 0.0005439391957295925
+    },
+    {
+      "gold": "unsafe",
+      "base_p": 0.999801347271117,
+      "tuned_p": 0.9932831671800052,
+      "off_label": 0.0003706294749239447
+    },
+    {
+      "gold": "safe",
+      "base_p": 0.9999890356951988,
+      "tuned_p": 0.9979731806372791,
+      "off_label": 0.00023075633138436302
+    },
+    {
+      "gold": "unsafe",
+      "base_p": 0.9991916463208533,
+      "tuned_p": 0.28717921435391947,
+      "off_label": 0.0020411712145005367
+    },
+    {
+      "gold": "unsafe",
+      "base_p": 0.9999200274135799,
+      "tuned_p": 0.9978988465261542,
+      "off_label": 0.00016021991817272152
+    },
+    {
+      "gold": "safe",
+      "base_p": 0.9987564334550901,
+      "tuned_p": 0.36931915026881396,
+      "off_label": 0.0024013741694943747
+    },
+    {
+      "gold": "unsafe",
+      "base_p": 0.9997142607015596,
+      "tuned_p": 0.6719987093091068,
+      "off_label": 0.001367626943306277
+    },
+    {
+      "gold": "unsafe",
+      "base_p": 0.9999179217859954,
+      "tuned_p": 0.921763197749454,
+      "off_label": 0.0006476816074183489
+    },
+    {
+      "gold": "unsafe",
+      "base_p": 0.9997215690847803,
+      "tuned_p": 0.17726753442426005,
+      "off_label": 0.0006058566904130203
+    },
+    {
+      "gold": "safe",
+      "base_p": 0.010560957305781316,
+      "tuned_p": 5.368052149054029e-09,
+      "off_label": 4.526424029205334e-05
+    },
+    {
+      "gold": "safe",
+      "base_p": 0.9993669072103128,
+      "tuned_p": 0.5800370904838403,
+      "off_label": 0.0008572883196507064
+    },
+    {
+      "gold": "safe",
+      "base_p": 0.9990723091725251,
+      "tuned_p": 0.0032721989584167804,
+      "off_label": 0.0003797908214711043
+    }
+  ]
+}
