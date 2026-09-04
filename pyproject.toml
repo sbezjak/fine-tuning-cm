@@ -23,12 +23,15 @@ train = [
     "mlx>=0.18",
     "mlx-lm>=0.18",
 ]
-# The real-dataset pull (HuggingFace `datasets`). Isolated too, so the mocked
-# suite + eval harness never install the heavy Arrow/HF stack - only
-# scripts/download-dataset.sh needs it. Streams google/civil_comments (CC0);
-# raw text lands git-ignored under data/real/.
+# The real-dataset pull. Isolated too, so the mocked suite + eval harness never
+# install it - only scripts/download-dataset.sh needs it. TARGETED, not streamed:
+# DuckDB queries the HF-hosted parquet of google/civil_comments (CC0) with predicate
+# pushdown (WHERE subscore >= tau), pulling only the rare harm rows instead of
+# streaming + discarding ~99%. huggingface-hub pins + resolves the dataset revision.
+# Raw text lands git-ignored under data/real/.
 data = [
-    "datasets>=2.19",
+    "duckdb>=1.1",
+    "huggingface-hub>=0.24",
 ]
 # The CUDA-path eval: load a cloud-trained HF PEFT adapter LOCALLY (CPU/MPS, no
 # bitsandbytes - that is CUDA-only) so the SAME frozen holdout runs through the

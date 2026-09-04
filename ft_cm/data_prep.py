@@ -8,7 +8,7 @@ so the model is trained to emit the label under the exact framing the eval uses.
 Alongside those, it writes `holdout.jsonl` in the raw {text, label} shape: the
 before/after eval reads THAT, so the harness never has to parse MLX message lines
 back into a gold label. The split is deterministic (seeded) and stratified by
-label, so "held-out" means the same rows every run and both classes are present
+label, so "held-out" means the same rows every run and every ground is present
 in every split.
 """
 
@@ -79,7 +79,7 @@ def stratified_split(
     records: list[dict], seed: int = 0, ratios: tuple[float, float, float] = (0.7, 0.15, 0.15)
 ) -> tuple[list[dict], list[dict], list[dict]]:
     """Split into (train, valid, test), stratified by label so every split holds
-    both classes. Deterministic under `seed`."""
+    every ground. Deterministic under `seed`."""
     by_label: dict[str, list[dict]] = defaultdict(list)
     for rec in records:
         by_label[rec["label"]].append(rec)
