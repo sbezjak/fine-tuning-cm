@@ -18,12 +18,26 @@ Why these five, and why NOT a judge: see notes.md "Grounds testing HERE".
 
 from __future__ import annotations
 
+import os
+
+# FT_CM_TASK is the ablation switch. Default "grounds" is main's behavior: the model
+# predicts the 5-way harm ground. "binary" collapses the label space to safe/unsafe
+# and swaps in the binary SYSTEM_PROMPT, so the SAME frozen rows and hyperparams can
+# be trained to predict the VERDICT directly - isolating "predict the ground" (Sara's
+# idea) from "relabel off sub-scores" (the necessary move). The grounds machinery
+# below (GROUNDS_RECIPE, HARM_GROUNDS, verdict) stays live in both modes: the binary
+# relabel derives its safe/unsafe targets from it. See notes.md "Harm-binary ablation".
+TASK: str = os.environ.get("FT_CM_TASK", "grounds")
+
 # The label space the model predicts AND the scorer accepts - one word, exact match.
 # Ordered harm-first so the positive (unsafe) grounds lead and `safe` is the sink.
 GROUNDS: tuple[str, ...] = ("threat", "identity_attack", "sexual", "insult", "safe")
 
-# The scorer/logprob/eval/data_prep all import LABELS; grounds ARE the labels now.
-LABELS: tuple[str, ...] = GROUNDS
+# Binary collapses the grounds to the safe/unsafe verdict axis (unsafe leads).
+BINARY_LABELS: tuple[str, ...] = ("unsafe", "safe")
+
+# The scorer/logprob/eval/data_prep all import LABELS; the task switch drives them.
+LABELS: tuple[str, ...] = GROUNDS if TASK == "grounds" else BINARY_LABELS
 
 # The grounds whose verdict is `unsafe`. `insult` and `safe` derive to `safe`:
 # insult is the incivility axis (proven the wall in step g / calibration / cloud),
@@ -52,12 +66,15 @@ SUBSCORE_COLUMNS: tuple[str, ...] = tuple(
     dict.fromkeys(col for _, cols in GROUND_RECIPE for col in cols)
 )
 
-# Every recipe ground must be a real label, and `safe` (the sink) must exist.
-assert {g for g, _ in GROUND_RECIPE} <= set(LABELS)
+# Every recipe ground must be a real ground, and `safe` (the sink) must exist in
+# whichever label space is active. The grounds invariants hold against GROUNDS (not
+# LABELS) so they still bind in binary mode, where the recipe drives the relabel.
+assert {g for g, _ in GROUND_RECIPE} <= set(GROUNDS)
 assert "safe" in LABELS
-assert HARM_GROUNDS <= set(LABELS)
+assert HARM_GROUNDS <= set(GROUNDS)
 
-SYSTEM_PROMPT = (
+# Grounds prompt: the 5-way harm-ground framing (main's default).
+GROUNDS_SYSTEM_PROMPT = (
     "You are a defensive content-moderation classifier. Read the user message and "
     "label the single most serious kind of harm it contains, using exactly one of "
     "these words:\n"
@@ -69,6 +86,22 @@ SYSTEM_PROMPT = (
     "safe - none of these.\n"
     "Answer with exactly one word. Do not explain."
 )
+
+# Binary prompt: the SAME harm boundary as the grounds relabel (harm = the three
+# HARM_GROUNDS; insult/profanity -> safe), stated 2-way. Encoding the identical
+# boundary is what keeps the ablation clean - the only thing that varies between the
+# two runs is granularity (name the ground vs. name the verdict), never the definition.
+BINARY_SYSTEM_PROMPT = (
+    "You are a defensive content-moderation classifier. Read the user message and "
+    "decide whether it contains harmful content, using exactly one of these words:\n"
+    "unsafe - contains a threat of violence, an attack on a protected identity "
+    "(race, religion, nationality, gender, sexuality, disability), or sexually "
+    "explicit content;\n"
+    "safe - none of these (including merely rude or profane language).\n"
+    "Answer with exactly one word. Do not explain."
+)
+
+SYSTEM_PROMPT = GROUNDS_SYSTEM_PROMPT if TASK == "grounds" else BINARY_SYSTEM_PROMPT
 
 
 def build_prompt(text: str) -> str:
@@ -94,5 +127,7 @@ def assign_ground(scores: dict[str, float], tau: float = 0.7) -> str:
 def verdict(ground: str) -> str:
     """Derive the safe/unsafe verdict from a ground. The whole point of grounding:
     this is a lookup, so the same predictions can be re-read under a different
-    HARM_GROUNDS boundary without retraining."""
-    return "unsafe" if ground in HARM_GROUNDS else "safe"
+    HARM_GROUNDS boundary without retraining. Identity on `unsafe` too, so the binary
+    ablation (whose predictions are already verdicts) can route through the same call
+    without special-casing - a ground maps by HARM_GROUNDS, a verdict passes through."""
+    return "unsafe" if (ground in HARM_GROUNDS or ground == "unsafe") else "safe"

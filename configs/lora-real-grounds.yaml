@@ -1,0 +1,39 @@
+# MLX-LM LoRA config for the GROUNDS run (Civil Comments sub-scores, TAU=0.7),
+# M1 / 8 GB. Same base + same LoRA hyperparams as the binary lora-real.yaml
+# (num_layers 8, rank 8, scale 20, batch 1, lr 1e-4) ON PURPOSE: the ONLY change
+# from the binary run is the LABELS (5 harm grounds, not safe/unsafe), so any
+# before/after difference is attributable to the relabel, not the knobs.
+#
+#   uv run --group train mlx_lm.lora --config configs/lora-real-grounds.yaml
+#
+# Iters: the binary run was ~30 rows x 100 iters (~3 epochs) and OVERFIT (val-loss
+# U-shape, best at it50). We now have 418 train rows, so 100 iters is <0.25 epoch.
+# 400 iters ~= 1 epoch; save + eval every 50 so we PICK the best checkpoint by val
+# loss instead of committing to an iter count (same discipline the binary run used).
+# Validate memory cheaply with `--iters 2` (throwaway adapter) before the full run;
+# max_seq_length 512 covers the longest row (~250 tokens); OOM levers in order:
+# batch_size (already 1), max_seq_length, num_layers.
+
+model: "mlx-community/Qwen2.5-1.5B-Instruct-4bit"
+train: true
+data: "data/real/prepared"
+adapter_path: "adapters/real-grounds"
+
+fine_tune_type: lora
+num_layers: 8
+
+batch_size: 1
+max_seq_length: 512
+iters: 400
+learning_rate: 1.0e-4
+
+steps_per_report: 10
+steps_per_eval: 50
+save_every: 50
+val_batches: 8
+grad_checkpoint: true
+
+lora_parameters:
+  rank: 8
+  scale: 20.0
+  dropout: 0.0
