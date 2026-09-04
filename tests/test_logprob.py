@@ -12,9 +12,14 @@ from ft_cm.calibration import (
     auto_decision,
     average_precision,
     confusion_at,
+    expected_calibration_error,
+    fit_temperature,
+    negative_log_likelihood,
     pick_operating_point,
+    reliability_diagram,
     roc_auc,
     smallest_safe_band,
+    temperature_scale,
 )
 from ft_cm.logprob import (
     build_label_token_ids,
@@ -88,6 +93,61 @@ def test_roc_auc_separates_and_handles_ties():
 def test_average_precision_perfect_ranking():
     golds = ["unsafe", "unsafe", "safe", "safe"]
     assert average_precision([0.9, 0.8, 0.2, 0.1], golds) == pytest.approx(1.0)
+
+
+@pytest.mark.mocked
+def test_reliability_equal_width_bins_and_ece():
+    # scores land in three 0.2-wide bins; a perfectly calibrated bin, an under-confident
+    # bin, and an empty bin that must be kept (count 0) with NaN stats.
+    scores = [0.10, 0.10, 0.30, 0.30, 0.30, 0.30, 0.90]
+    golds = ["safe", "safe", "unsafe", "unsafe", "safe", "safe", "unsafe"]
+    bins = reliability_diagram(scores, golds, n_bins=5, scheme="width")
+    assert len(bins) == 5
+    assert [b.count for b in bins] == [2, 4, 0, 0, 1]
+    assert bins[0].obs_freq == pytest.approx(0.0)  # 0.10 bin: both safe, calibrated-ish
+    assert bins[1].mean_pred == pytest.approx(0.30)
+    assert bins[1].obs_freq == pytest.approx(0.5)  # under-confident: pred .30, half unsafe
+    assert math.isnan(bins[2].gap)  # empty bin kept, NaN gap, drops from ECE
+    # ECE = weighted avg gap over occupied bins only
+    expected = (2 / 7) * 0.10 + (4 / 7) * abs(0.30 - 0.5) + (1 / 7) * abs(0.90 - 1.0)
+    assert expected_calibration_error(bins) == pytest.approx(expected)
+
+
+@pytest.mark.mocked
+def test_reliability_equal_frequency_never_empty():
+    scores = [0.05, 0.06, 0.40, 0.42, 0.80]
+    golds = ["safe", "safe", "unsafe", "safe", "unsafe"]
+    bins = reliability_diagram(scores, golds, n_bins=5, scheme="frequency")
+    assert all(b.count == 1 for b in bins)  # ~equal count, no empty bin
+    assert [b.lo for b in bins] == pytest.approx(sorted(scores))  # empirical edges
+
+
+@pytest.mark.mocked
+def test_temperature_scale_is_monotonic_and_identity_at_one():
+    scores = [0.10, 0.30, 0.51, 0.74]
+    assert temperature_scale(scores, 1.0) == pytest.approx(scores)  # T=1 is identity
+    hot = temperature_scale(scores, 5.0)  # softens toward 0.5
+    assert all(abs(h - 0.5) < abs(s - 0.5) for h, s in zip(hot, scores))
+    cold = temperature_scale(scores, 0.2)  # sharpens away from 0.5
+    assert all(abs(c - 0.5) > abs(s - 0.5) for c, s in zip(cold, scores))
+    # monotonic: order (hence ROC-AUC) is preserved under any T
+    assert hot == sorted(hot)
+
+
+@pytest.mark.mocked
+def test_fit_temperature_recovers_a_known_distortion():
+    # Genuinely calibrated WITH overlap (not separable): the 0.7 bin is 70% unsafe, the
+    # 0.3 bin 30% unsafe, so the optimum is interior at T=1. (Separable data would run T
+    # to the boundary - the small-N failure the honest branch has to watch for.)
+    scores = [0.7] * 10 + [0.3] * 10
+    golds = ["unsafe"] * 7 + ["safe"] * 3 + ["unsafe"] * 3 + ["safe"] * 7
+    assert fit_temperature(scores, golds) == pytest.approx(1.0, abs=0.1)  # already calibrated
+    distorted = temperature_scale(scores, 2.0)  # soften -> under-confident
+    t = fit_temperature(distorted, golds)
+    assert t == pytest.approx(0.5, abs=0.1)  # inverse temperature recovered
+    assert negative_log_likelihood(
+        temperature_scale(distorted, t), golds
+    ) < negative_log_likelihood(distorted, golds)  # the fit lowers NLL
 
 
 @pytest.mark.mocked
