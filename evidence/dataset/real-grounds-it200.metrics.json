@@ -1,0 +1,112 @@
+{
+  "model": "mlx-community/Qwen2.5-1.5B-Instruct-4bit",
+  "adapter_path": "adapters/real-grounds-it200",
+  "holdout": "data/real/prepared/holdout.jsonl",
+  "n": 90,
+  "before": {
+    "n": 90,
+    "correct": 23,
+    "accuracy": 0.25555555555555554,
+    "per_label_accuracy": {
+      "threat": 0.9444444444444444,
+      "identity_attack": 0.0,
+      "sexual": 0.0,
+      "insult": 0.2777777777777778,
+      "safe": 0.05555555555555555
+    },
+    "confusion": {
+      "threat": {
+        "insult": 1,
+        "threat": 17
+      },
+      "identity_attack": {
+        "threat": 17,
+        "insult": 1
+      },
+      "sexual": {
+        "insult": 9,
+        "threat": 9
+      },
+      "insult": {
+        "insult": 5,
+        "threat": 13
+      },
+      "safe": {
+        "insult": 4,
+        "threat": 12,
+        "identity_attack": 1,
+        "safe": 1
+      }
+    },
+    "n_none": 0,
+    "n_ambiguous": 0
+  },
+  "after": {
+    "n": 90,
+    "correct": 59,
+    "accuracy": 0.6555555555555556,
+    "per_label_accuracy": {
+      "threat": 0.7222222222222222,
+      "identity_attack": 0.6111111111111112,
+      "sexual": 0.9444444444444444,
+      "insult": 0.8888888888888888,
+      "safe": 0.1111111111111111
+    },
+    "confusion": {
+      "threat": {
+        "insult": 3,
+        "threat": 13,
+        "sexual": 2
+      },
+      "identity_attack": {
+        "insult": 6,
+        "identity_attack": 11,
+        "sexual": 1
+      },
+      "sexual": {
+        "sexual": 17,
+        "threat": 1
+      },
+      "insult": {
+        "insult": 16,
+        "sexual": 1,
+        "identity_attack": 1
+      },
+      "safe": {
+        "insult": 16,
+        "safe": 2
+      }
+    },
+    "n_none": 0,
+    "n_ambiguous": 0
+  },
+  "delta_accuracy": 0.4,
+  "verdict": {
+    "before": {
+      "verdict_accuracy": 0.5888888888888889,
+      "verdict_confusion": {
+        "safe": {
+          "safe": 10,
+          "unsafe": 26
+        },
+        "unsafe": {
+          "safe": 11,
+          "unsafe": 43
+        }
+      }
+    },
+    "after": {
+      "verdict_accuracy": 0.8777777777777778,
+      "verdict_confusion": {
+        "safe": {
+          "safe": 34,
+          "unsafe": 2
+        },
+        "unsafe": {
+          "safe": 9,
+          "unsafe": 45
+        }
+      }
+    }
+  }
+}
