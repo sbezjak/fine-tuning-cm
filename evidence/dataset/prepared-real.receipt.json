@@ -1,0 +1,10 @@
+{
+  "source": "data/real/civil-comments-raw.jsonl",
+  "seed": 0,
+  "dedup_threshold": 0.5,
+  "train": 418,
+  "valid": 90,
+  "test": 90,
+  "dropped_near_dup": 2,
+  "max_holdout_train_jaccard": 0.375
+}
