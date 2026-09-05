@@ -60,15 +60,11 @@ def _pct(x: float) -> str:
 
 
 def _file_link(p: Path | str) -> str:
-    # Show the path as given (readable, usually repo-relative) and link it as a
-    # file:// URI so it opens locally. The link is inert when the HTML is viewed on
-    # another device - the path text stays the useful part, and both name the source.
-    path = Path(p)
-    try:
-        href = path.resolve().as_uri()
-    except (ValueError, OSError):
-        href = str(path)
-    return f"<a href='{_esc(href)}'>{_esc(str(p))}</a>"
+    # Link the path AS GIVEN (repo-relative), never a resolved absolute file:// URI:
+    # this is a public repo, and an absolute href would bake the local username and
+    # machine path into a committed report. Relative opens correctly from the repo
+    # root; the path text stays the useful part, and both name the source.
+    return f"<a href='{_esc(str(p))}'>{_esc(str(p))}</a>"
 
 
 def _summary_table(rep: dict) -> str:
