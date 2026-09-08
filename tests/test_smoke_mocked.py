@@ -2,9 +2,17 @@ import pytest
 import respx
 from httpx import Response
 
+from ft_cm import taxonomy
 from ft_cm.eval import _strip_rows, evaluate
 from ft_cm.providers.base import Provider
 from ft_cm.providers.ollama import OllamaProvider
+
+# The eval-harness mechanism is task-independent, but these end-to-end checks assert on
+# concrete gold labels, so they run under the default binary task; the harness also runs
+# in grounds mode via the mlx consistency tests and the real grounds eval.
+binary_only = pytest.mark.skipif(
+    taxonomy.TASK != "binary", reason="binary-task harness case; default task"
+)
 
 
 @pytest.mark.mocked
@@ -32,22 +40,24 @@ class _ScriptedProvider(Provider):
 
 
 @pytest.mark.mocked
+@binary_only
 async def test_evaluate_scores_a_perfect_run():
-    holdout = [{"text": "a kind hello", "label": "safe"}, {"text": "a menace", "label": "threat"}]
-    provider = _ScriptedProvider({"kind hello": "safe", "menace": "threat"})
+    holdout = [{"text": "a kind hello", "label": "safe"}, {"text": "a menace", "label": "unsafe"}]
+    provider = _ScriptedProvider({"kind hello": "safe", "menace": "unsafe"})
     result = await evaluate(provider, holdout)
     assert result.accuracy == 1.0
     assert result.n_none == 0
 
 
 @pytest.mark.mocked
+@binary_only
 async def test_evaluate_counts_non_answers_and_confusion():
-    holdout = [{"text": "a kind hello", "label": "safe"}, {"text": "a menace", "label": "threat"}]
+    holdout = [{"text": "a kind hello", "label": "safe"}, {"text": "a menace", "label": "unsafe"}]
     provider = _ScriptedProvider({"kind hello": "safe", "menace": "I cannot help"})
     result = await evaluate(provider, holdout)
     assert result.accuracy == 0.5
     assert result.n_none == 1
-    assert result.confusion["threat"]["none"] == 1
+    assert result.confusion["unsafe"]["none"] == 1
 
 
 @pytest.mark.mocked

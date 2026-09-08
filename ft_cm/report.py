@@ -113,7 +113,11 @@ def _confusion(name: str, r: dict) -> str:
 
 
 def _trace_table(rep: dict) -> str:
-    before, after = rep["before"]["rows"], rep["after"]["rows"]
+    before, after = rep["before"].get("rows"), rep["after"].get("rows")
+    if not before or not after:
+        # a metrics-only receipts JSON (rows stripped) still renders summary + grid;
+        # only the per-row trace needs the raw completions.
+        return "<p class='meta'>Per-row trace omitted: this receipts JSON has no raw rows.</p>"
     head = (
         "<tr><th>#</th><th>gold</th><th>base</th><th>tuned</th><th>note</th>"
         "<th class='txt'>text</th></tr>"

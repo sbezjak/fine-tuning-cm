@@ -9,7 +9,7 @@ without the `data` group installed.
 import pytest
 
 from ft_cm.download_data import content_hash
-from ft_cm.taxonomy import LABELS, SUBSCORE_COLUMNS, assign_ground, verdict
+from ft_cm.taxonomy import GROUNDS, SUBSCORE_COLUMNS, assign_ground, verdict
 
 pytestmark = pytest.mark.mocked
 
@@ -52,8 +52,10 @@ def test_assign_ground_tau_moves_the_line():
 
 
 def test_assign_ground_emits_only_taxonomy_labels():
-    assert assign_ground(_scores(threat=0.9), 0.5) in LABELS
-    assert assign_ground(_scores(), 0.5) in LABELS
+    # assign_ground always emits a harm GROUND (grounds machinery stays live in both
+    # tasks); the binary relabel derives safe/unsafe from it downstream via verdict().
+    assert assign_ground(_scores(threat=0.9), 0.5) in GROUNDS
+    assert assign_ground(_scores(), 0.5) in GROUNDS
 
 
 def test_verdict_derives_unsafe_from_harm_grounds():
