@@ -38,6 +38,10 @@ data/**/raw/
 data/**/*.raw.*
 !data/smoke/
 !data/smoke/**
+# Full real-data eval receipts carry raw comment text. Only the stripped
+# metrics-only view (evidence/dataset/*.metrics.json) is committable; a full
+# receipt dropped at the evidence root (e.g. a local re-verify run) stays out.
+evidence/real-*.json
 
 # --- Training artifacts (regenerable, and can be large) -----------------------
 adapters/

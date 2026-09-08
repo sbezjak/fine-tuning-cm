@@ -10,7 +10,12 @@
 set -euo pipefail
 cd "$(git rev-parse --show-toplevel 2>/dev/null || echo "$(dirname "$0")/..")" || exit 1
 
-echo "[train-smoke] preparing data/smoke/smoke.jsonl -> data/smoke/prepared/"
+# The smoke set is BINARY (safe/unsafe). Main defaults FT_CM_TASK=grounds, whose
+# 5-label check rejects the binary labels at data-prep, so pin the task here to keep
+# the smoke flow self-contained. Override by exporting FT_CM_TASK before the script.
+export FT_CM_TASK="${FT_CM_TASK:-binary}"
+
+echo "[train-smoke] task=${FT_CM_TASK}; preparing data/smoke/smoke.jsonl -> data/smoke/prepared/"
 uv run python -m ft_cm.data_prep data/smoke/smoke.jsonl data/smoke/prepared --seed 0
 
 ts=$(date -u +%Y%m%dT%H%M%SZ)

@@ -20,14 +20,14 @@ from __future__ import annotations
 
 import os
 
-# FT_CM_TASK is the ablation switch. Default "grounds" is main's behavior: the model
-# predicts the 5-way harm ground. "binary" collapses the label space to safe/unsafe
-# and swaps in the binary SYSTEM_PROMPT, so the SAME frozen rows and hyperparams can
-# be trained to predict the VERDICT directly - isolating "predict the ground" (Sara's
-# idea) from "relabel off sub-scores" (the necessary move). The grounds machinery
-# below (GROUNDS_RECIPE, HARM_GROUNDS, verdict) stays live in both modes: the binary
-# relabel derives its safe/unsafe targets from it. See notes.md "Harm-binary ablation".
-TASK: str = os.environ.get("FT_CM_TASK", "grounds")
+# FT_CM_TASK is the ablation switch. Default "binary" is the main tutorial: the model
+# predicts the safe/unsafe VERDICT, which is what the article and the smoke flow use, so
+# the documented commands work with no env set. "grounds" is the ablation: predict the
+# 5-way harm ground instead (Sara's idea), isolating "predict the ground" from "relabel
+# off sub-scores" (the necessary move). The grounds machinery below (GROUNDS_RECIPE,
+# HARM_GROUNDS, verdict) stays live in both modes: the binary relabel derives its
+# safe/unsafe targets from it. See notes.md "Harm-binary ablation".
+TASK: str = os.environ.get("FT_CM_TASK", "binary")
 
 # The label space the model predicts AND the scorer accepts - one word, exact match.
 # Ordered harm-first so the positive (unsafe) grounds lead and `safe` is the sink.

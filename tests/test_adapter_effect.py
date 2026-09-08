@@ -25,9 +25,14 @@ def test_dir_without_adapter_config_raises(tmp_path):
 
 
 @pytest.mark.mocked
-def test_real_smoke_adapter_passes():
-    # the committed smoke adapter dir has adapter_config.json, so the guard is silent
-    _assert_adapter_present("adapters/smoke")
+def test_valid_adapter_dir_passes(tmp_path):
+    # the positive case: a dir holding adapter_config.json looks like a trained
+    # adapter, so the guard is silent. Mocked with tmp_path like its siblings, since
+    # the real adapters/* are git-ignored build artifacts, absent on a clean tree.
+    adapter = tmp_path / "adapter"
+    adapter.mkdir()
+    (adapter / "adapter_config.json").write_text("{}")
+    _assert_adapter_present(str(adapter))  # must not raise
 
 
 @pytest.mark.mlx
