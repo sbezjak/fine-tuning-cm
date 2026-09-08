@@ -30,24 +30,34 @@ import json
 from pathlib import Path
 
 _CSS = """
-:root { color-scheme: light dark; }
+:root {
+  color-scheme: light dark;
+  --fg: #1a1a1a; --bg: #ffffff; --muted: #666; --border: #ccc; --border-strong: #888;
+  --ok: #1a7f37; --bad: #b3261e; --crit: rgba(179,38,30,0.14); --txt: #444; --flip: #8250df;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --fg: #e6e6e6; --bg: #1a1a1a; --muted: #9aa0a6; --border: #3a3a3a; --border-strong: #5a5a5a;
+    --ok: #3fb950; --bad: #f85149; --crit: rgba(248,81,73,0.24); --txt: #b8b8b8; --flip: #bc8cff;
+  }
+}
 body { font: 15px/1.5 -apple-system, system-ui, sans-serif; margin: 2rem auto;
-       max-width: 1000px; padding: 0 1rem; }
+       max-width: 1000px; padding: 0 1rem; color: var(--fg); background: var(--bg); }
 h1 { font-size: 1.5rem; } h2 { font-size: 1.15rem; margin-top: 2rem; }
-.meta { color: #666; margin-bottom: 1.5rem; }
-.caveat { color: #666; font-size: 0.9rem; border-left: 3px solid #ccc; padding-left: 0.8rem; }
+.meta { color: var(--muted); margin-bottom: 1.5rem; }
+.caveat { color: var(--muted); font-size: 0.9rem; border-left: 3px solid var(--border); padding-left: 0.8rem; }
 table { border-collapse: collapse; width: 100%; margin: 0.5rem 0 1rem;
         font-variant-numeric: tabular-nums; }
-th, td { padding: 0.35rem 0.6rem; border-bottom: 1px solid #ccc; text-align: right; }
+th, td { padding: 0.35rem 0.6rem; border-bottom: 1px solid var(--border); text-align: right; }
 th:first-child, td:first-child { text-align: left; }
-thead th { border-bottom: 2px solid #888; }
+thead th { border-bottom: 2px solid var(--border-strong); }
 .grids { display: flex; gap: 1.5rem; flex-wrap: wrap; }
 .grids > div { flex: 1; min-width: 260px; }
-.ok { color: #1a7f37; } .bad { color: #b3261e; }
-.crit { background: rgba(179,38,30,0.14); font-weight: 600; }
+.ok { color: var(--ok); } .bad { color: var(--bad); }
+.crit { background: var(--crit); font-weight: 600; }
 .mono { font-variant-numeric: tabular-nums; }
-.txt { text-align: left; color: #444; }
-.flip { color: #8250df; font-weight: 600; }
+.txt { text-align: left; color: var(--txt); }
+.flip { color: var(--flip); font-weight: 600; }
 """
 
 
