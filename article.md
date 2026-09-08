@@ -85,6 +85,7 @@ Start with the "smoke" path. It trains on the tiny set of made-up examples that 
 
 ```bash
 uv sync
+uv run pytest -m mocked                                   # fast unit tests, no model or network
 scripts/train-smoke.sh                                    # prepare + train on the fabricated set
 uv run python -m ft_cm.eval                               # before/after on held-out examples
 uv run python -m ft_cm.report evidence/smoke-before-after.json
