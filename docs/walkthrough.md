@@ -24,6 +24,7 @@ The project has two layers. A **simple core** (a first fine-tune anyone could ru
 | PEFT / trl | The equivalent toolchain on the CUDA (NVIDIA) path, used for the cloud run. |
 | held-out set | Test messages the model never trains on. The only honest place to measure quality. |
 | before / after | The same held-out set run through the base model, then the tuned model. |
+| step | One training pass: the model guesses a label, the guess is compared to the correct one, and every adapter number is nudged a tiny amount toward the right answer. Hundreds run in sequence; the learning is their accumulation. |
 | checkpoint | A saved copy of the adapter partway through training. |
 | val (validation) loss | How well the adapter does on messages it is not training on, during the run. |
 | greedy / temperature 0 | The model always picks its most likely next word, so the same input gives the same output. |
@@ -129,7 +130,7 @@ That is 0.583 accuracy, 0.92 unsafe caught, but only 0.25 safe caught. After tun
 
 **Question.** Which checkpoint do you keep?
 
-**What I did.** Watched validation loss across the real run.
+**What I did.** Each step nudges the adapter's numbers a little further, so more steps is not automatically better - past a point the numbers bend to fit the exact training examples. To find that point, I watched validation loss across the real run.
 
 **The numbers.** Validation loss fell then rose: 4.890 -> 0.962 (halfway) -> 1.734 (end), while training-set loss kept dropping.
 
