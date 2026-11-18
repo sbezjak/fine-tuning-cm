@@ -182,6 +182,14 @@ Did the *finer labelling* help, or just the cleaner relabel? To separate the two
 
 `tests/test_consistency.py` encodes the theory-testing shape as a judge-free contract on the grounds model: structurally identical cases must get the same ground. It passes 6 of 7. Swapping an inert detail holds the ground (party swap: "the {Republican/Democratic/Green} party are complete morons" all read as insult; name swap: "come find {Alex/Priya/Chen/Omar} and make them pay" all read as threat), and varying the harm type moves the ground as it should. The one strict expected-failure: an identity attack read as a plain insult, the same hard boundary the held-out set showed. It is written as an `xfail(strict=True)` so that if the model ever learns the distinction, the test breaks loudly and forces the finding to be updated rather than lost.
 
+### F14. New phrasing: the real-data model loses the veiled threats
+
+**What I did.** Ran the real safe/unsafe model from the README (trained on Civil Comments, `adapters/real-binary-it200`) on the 24 made-up messages from F4's fresh set, written by hand rather than taken from Civil Comments. Before running, I fixed which rows count: this model was taught that unsafe means violent threats, identity attacks or sexual content, so the 5 rows about blackmail, career pressure, doxxing and phishing sit outside what it learned and are reported apart. Receipt: `evidence/hard-v2-real-binary-before-after.json`.
+
+**What happened.** On the 19 rows that fit, 13 right before tuning and 14 after. The one-row gain hides two moves in opposite directions. It stopped flagging harmless exaggeration ("the morning commute was an absolute bloodbath"): 12 of 12 harmless messages passed, up from 8. But it missed all 5 veiled threats ("one of these nights you'll forget to check the back door"), 3 of which the untuned model caught. The explicit threat and the hate message were caught before and after.
+
+**Takeaway.** The README's trade (fewer false alarms, more harm let through) shows up again on hand-written messages outside its training data. The made-up model's 0.958 on these messages came from training aimed at exactly these styles (F4), so it never said anything about the real-data model. Five threat rows show a direction, not a rate.
+
 ## How the code fits together
 
 Everything runs through a small set of modules, grouped by role.

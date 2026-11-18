@@ -23,7 +23,7 @@ Two readings, because they measure different things.
 | base (before) | 0.11 | 0.82 | 10 | 0.533 |
 | tuned (after) | 0.89 | 0.72 | 15 | 0.789 |
 
-Overall accuracy jumps from `0.533` to `0.789`, and the tuned model stops over-flagging safe speech (`0.11 -> 0.89` caught). But the safety-critical number moved the wrong way: of 54 genuinely unsafe messages it now lets 15 through, up from 10. It traded catching threats for raising fewer false alarms. Receipt: [real safe/unsafe run](evidence/dataset/real-binary-it200.metrics.json).
+Overall accuracy jumps from `0.533` to `0.789`, and the tuned model stops over-flagging safe speech (`0.11 -> 0.89` caught). But the safety-critical number moved the wrong way: of 54 genuinely unsafe messages it now lets 15 through, up from 10. It traded catching threats for raising fewer false alarms. Receipt: [real safe/unsafe run](evidence/dataset/real-binary-it200.metrics.json). The same trade shows up outside its training data: on 24 hand-written messages, it stopped flagging harmless exaggeration but missed all 5 veiled threats, 3 of which the untuned model caught. Five messages show a direction, not a rate ([receipt](evidence/hard-v2-real-binary-before-after.json), [walkthrough F14](docs/walkthrough.md#f14-new-phrasing-the-real-data-model-loses-the-veiled-threats)).
 
 The habit the whole project is about: **read the full breakdown, not the single score.** The `0.789` looks solid until you split it, real label down the side, model's guess across the top:
 
